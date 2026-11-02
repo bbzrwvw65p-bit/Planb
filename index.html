@@ -102,7 +102,17 @@ dialog::backdrop{background:#000b;backdrop-filter:blur(4px)}
 dialog h2{font:700 16px var(--hd);letter-spacing:1.5px;margin:0 0 10px;color:var(--cy)}
 dialog .grid{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:12px;padding:10px}
 @media (prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
-header>div:not(.live){min-width:0;flex:1}</style></head><body>
+header>div:not(.live){min-width:0;flex:1}
+.onb nav{display:none}.onbx{padding:20px}.prog .bar{margin:8px 0 16px}
+.opts{display:grid;gap:10px;margin-top:8px}.opt{min-height:56px;border-radius:14px;border:1px solid var(--line);background:rgba(4,8,18,.6);color:var(--tx);font:600 16px var(--sans);text-align:left;padding:0 16px;display:flex;align-items:center;gap:12px}
+.opt.on{border-color:var(--cy);background:rgba(34,230,255,.1);box-shadow:0 0 18px -6px var(--cy);color:var(--cy)}
+.opt .cb{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--mut);flex:none}.opt.on .cb{border-color:var(--cy);background:var(--cy);box-shadow:0 0 8px var(--cy)}
+.step{display:flex;align-items:center;gap:14px}.step button{width:64px;min-height:56px;font-size:26px;flex:none}.step b{flex:1;text-align:center;font:900 40px var(--hd);text-shadow:0 0 14px #22e6ff88}
+.sum{margin-top:12px}
+.revs,.rep{padding:14px 16px;margin-bottom:14px}.revs{border-color:#ffd16666}.rep{border-color:#a78bfa66}.rep h3{font:700 15px var(--hd);letter-spacing:1px;margin:6px 0}.rep p{margin:0 0 10px;color:var(--mut);font-size:14px;line-height:1.45}
+.rv{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line)}.rv:first-of-type{border-top:0}.rv b{display:block;font-size:15px}.rv span{font-size:12px;color:var(--mut)}.rv button{flex:none;min-height:42px;font-size:13px}
+
+</style></head><body>
 <div class="bgg"></div><canvas id="fx"></canvas>
 <header><svg class="logo" viewBox="0 0 64 64" fill="none"><path d="M32 4l24 14v28L32 60 8 46V18z" stroke="#22e6ff" stroke-width="3"/><text x="32" y="40" text-anchor="middle" font-family="Orb,sans-serif" font-weight="900" font-size="22" fill="#e6f1ff">B</text></svg>
 <div><h1>PLAN B</h1><small id="sub"></small></div><div class="live" id="net" title="Funciona sin conexión">OFFLINE-READY</div></header>
