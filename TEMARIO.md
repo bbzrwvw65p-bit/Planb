@@ -92,7 +92,7 @@ Cada ficha de «Cómo se hace» es una habilidad:
 - **Aprendido**: práctica marcada + test de 5 preguntas sacadas de la ficha y de sus mismas fuentes, aprobado con 4 de 5 (80 %). Da +30 XP de Habilidades.
 - **Caduca a los 12 meses**: vuelve a Explicado, sus puntos quedan en pausa y deja de contar como requisito. Aviso un mes antes.
 - **Curso oficial** (por ejemplo Cruz Roja): medalla «Curso oficial: …» y +50 XP. En Amigos solo se ve el nombre de la medalla, y se pueden quitar las medallas de la tarjeta.
-- La ficha de violencia en casa **nunca** es una habilidad: no se anota, no puntúa y no aparece en el panel.
+- La ficha de violencia doméstica **nunca** es una habilidad: no se anota, no puntúa y no aparece en el panel.
 - «Sabe primeros auxilios» en la ficha de una persona es informativo y enlaza a las fichas.
 
 ## Perfil (v6)
@@ -125,7 +125,7 @@ Por gravedad: primera hora, día 1 y día 3. _Fuentes: Protección Civil, Cruz R
 ### Tengo un problema (15 árboles)
 Funciona sin cuenta, sin perfil y sin internet. Una pregunta por pantalla, primero lo que amenaza la vida, «Atrás» y «Empezar de nuevo», y siempre visible «Si dudas, llama al 112» (llamada gratuita, también sin saldo). Si hay perfil, lo usa (por ejemplo, aparatos médicos o medicación en frío).
 
-Apagón · Sin agua · Terremoto · Incendio en casa · Incendio cercano · Inundación · Calor extremo · Herido o enfermo · Persona perdida o desaparecida · Evacuación · Monóxido o gas · Sin dinero ni pagos · Sin comunicaciones · Tensión o disturbios en la calle · Violencia en casa o de pareja.
+Apagón · Sin agua · Terremoto · Incendio en casa · Incendio cercano · Inundación · Calor extremo · Herido o enfermo · Persona perdida o desaparecida · Evacuación · Monóxido o gas · Sin dinero ni pagos · Sin comunicaciones · Tensión o disturbios en la calle · Violencia doméstica o de pareja.
 
 Los finales que recomiendan una técnica enlazan a su ficha de «Cómo se hace» (RCP, posición lateral de seguridad, atragantamiento, hemorragia, quemaduras, golpe de calor, potabilizar agua, gas y extintor). La ficha se abre dentro del árbol, con el 112 visible y «‹ Atrás» para volver.
 
@@ -143,9 +143,9 @@ Cifras usadas en los árboles y las fichas:
 - Comida en un corte: nevera cerrada unas 4 horas; congelador lleno unas 48 h, a medias 24 h (USDA / FoodSafety.gov).
 
 ### Cómo se hace
-Guía · Cómo se hace: 11 fichas con los pasos esenciales dentro de la app (RCP, posición lateral de seguridad, atragantamiento, hemorragia grave, quemaduras, golpe de calor, potabilizar agua, olor a gas y llave del gas, usar un extintor, calima o polvo en suspensión, violencia en casa o de pareja). Las misiones de primeros auxilios, botiquín, fuego y CO, potabilizar y cuadro eléctrico enlazan a sus fichas. Cada ficha termina con «Para ampliar · necesita internet»: enlaces a la fuente oficial que solo se abren si los tocas, con la fecha en que se comprobaron (16 nov 2026).
+Guía · Cómo se hace: 11 fichas con los pasos esenciales dentro de la app (RCP, posición lateral de seguridad, atragantamiento, hemorragia grave, quemaduras, golpe de calor, potabilizar agua, olor a gas y llave del gas, usar un extintor, calima o polvo en suspensión, violencia doméstica o de pareja). Las misiones de primeros auxilios, botiquín, fuego y CO, potabilizar y cuadro eléctrico enlazan a sus fichas. Cada ficha termina con «Para ampliar · necesita internet»: enlaces a la fuente oficial que solo se abren si los tocas, con la fecha en que se comprobaron (16 nov 2026).
 
-### Violencia en casa o de pareja
+### Violencia doméstica o de pareja
 Árbol y ficha con datos del Ministerio de Igualdad (Delegación del Gobierno contra la Violencia de Género):
 - **016**: gratuito, confidencial, 24 h, 53 idiomas por teléfono, asesoramiento jurídico de 8 a 22 h. No aparece en la factura, pero puede quedar en el registro de llamadas del móvil: se explica cómo borrarlo en iPhone y Android (pasos orientativos, no oficiales, que cambian según el modelo). **WhatsApp 600 000 016** (solo mensajes), **016-online@igualdad.gob.es**, chat en la web de la Delegación, teléfono de texto 900 116 016.
 - **112** en peligro; **091** Policía Nacional; **062** Guardia Civil. En Canarias, el 112 tiene un servicio especializado del Instituto Canario de Igualdad, 24 h, coordinado con el DEMA de cada isla.
@@ -187,7 +187,7 @@ Opcionales (una vez por semana, cada dos semanas o una vez al mes) y con cronóm
 - **Amigos**: tarjeta fija (alias, nivel, rango, XP por atributo, total, fecha y, si quieres, el nombre de tus medallas). Nunca inventario, salud, ubicaciones ni dirección.
 
 ## Tus datos
-Todo se guarda solo en este móvil (localStorage); la app pide al navegador que no lo borre (almacenamiento persistente). No hay cuenta, servidor, analítica, rastreadores ni peticiones externas automáticas. Los enlaces externos (↗) solo se abren si los tocas. De las fichas solo anota que las abriste (para la habilidad), nunca la de violencia en casa. Antes de enviar un archivo ves exactamente lo que contiene. WhatsApp cifra los mensajes de extremo a extremo; los chats normales de Telegram y el correo quedan en sus servidores (los chats secretos de Telegram sí son de extremo a extremo); en todos los casos quien lo recibe puede leerlo. Los datos no están cifrados por Plan B.
+Todo se guarda solo en este móvil (localStorage); la app pide al navegador que no lo borre (almacenamiento persistente). No hay cuenta, servidor, analítica, rastreadores ni peticiones externas automáticas. Los enlaces externos (↗) solo se abren si los tocas. De las fichas solo anota que las abriste (para la habilidad), nunca la de violencia doméstica. Antes de enviar un archivo ves exactamente lo que contiene. WhatsApp cifra los mensajes de extremo a extremo; los chats normales de Telegram y el correo quedan en sus servidores (los chats secretos de Telegram sí son de extremo a extremo); en todos los casos quien lo recibe puede leerlo. Los datos no están cifrados por Plan B.
 - **Cuándo se pierden**: en iPhone, al borrar el icono de la pantalla de inicio; si cambia la dirección de la app; en una pestaña de Safari sin instalar, iOS puede borrarlos tras 7 días sin abrirla (WebKit, 2020).
 - **Actualizaciones**: copia automática antes de cada migración de datos (si falla, se restaura y avisa); aviso «Hay una versión nueva» cuando llega una; recordatorio de copia de seguridad cada 30 días; versión visible en «Tus datos».
 - «Borrar todos mis datos» borra todo tras confirmar escribiendo BORRAR.

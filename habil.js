@@ -1,7 +1,7 @@
 /* Plan B v6 · Habilidades: cada ficha «Cómo se hace» es una habilidad.
    Explicado: la has abierto (0 puntos). Aprendido: práctica marcada + test aprobado (4 de 5, el 80 %): solo esto puntúa.
    Caduca a los 12 meses: vuelve a Explicado, sus puntos quedan en pausa y deja de contar como requisito de nivel.
-   Las preguntas salen del texto de cada ficha y de sus mismas fuentes. La ficha de violencia en casa nunca puntúa ni se anota. */
+   Las preguntas salen del texto de cada ficha y de sus mismas fuentes. La ficha de violencia doméstica nunca puntúa ni se anota. */
 'use strict';
 const APPV='6.1',APPV_N=61;
 const SKXP=30,CURSO_XP=50,SK_PASS=.8;
@@ -129,6 +129,6 @@ async function skCurso(k){if(!await ask(`<h2>Curso oficial</h2><p>Solo si lo has
  const e=($('#cuE').value||'').trim(),fe=$('#cuF').value||'';if(!e){note('Escribe la entidad del curso.');return}if(fe&&fe>today()){note('La fecha no puede ser futura.');return}
  const s=skAll()[k]||(skAll()[k]={estado:'Explicado',abierto:today()});s.curso={entidad:e.slice(0,60),fecha:fe};save();render();note('Curso anotado: medalla y +'+CURSO_XP+' XP.')}
 async function skCursoDel(k){if(!await ask('<h2>¿Quitar el curso?</h2><p>Se quitan su medalla y sus puntos.</p>','Quitar','Cancelar'))return;delete skAll()[k].curso;save();render()}
-/* Resumen para el panel (nunca incluye la ficha de violencia en casa: no es una habilidad) */
+/* Resumen para el panel (nunca incluye la ficha de violencia doméstica: no es una habilidad) */
 function skPanel(){if(!D||!D.hogar)return '';const L=skList(),apr=L.filter(f=>skVigente(f.k)),req=reqMissing(D.fin?4:D.nivel);
  return `<button type="button" class="card tl wide" onclick="go('g');gs('como')"><span class="k">Habilidades · Cómo se hace</span><b>${apr.length} de ${L.length} aprendidas</b><span class="xs mut">${req.length?'Para subir de nivel te falta: '+esc(req.map(k=>fichaDef(k).t).join(', '))+'.':'Requisitos del nivel cumplidos.'}</span></button>`}

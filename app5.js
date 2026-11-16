@@ -29,7 +29,7 @@ function extraXP(){const a={},f={};if(!D)return{a,f};
  (D.drills||[]).filter(d=>d.sorpresa).slice(-DRILL.max).forEach(d=>{const v=DRILL.xp*tScore(d.s,DRILL.obj);a.rsp=(a.rsp||0)+v;f.energia=(f.energia||0)+v});return{a,f}}
 
 /* ===================== Botón grande «Tengo un problema» ===================== */
-const bigHelp=()=>`<button type="button" class="help" onclick="openEmg()"><span class="k">Sin cuenta · sin internet</span><b>TENGO UN PROBLEMA</b><span class="xs">Te guía paso a paso. Si dudas, llama al 112.</span></button>`;
+const bigHelp=()=>''; /* v6.0.1: el aviso vive en el botón fijo de arriba */
 const call112=()=>`<div class="c112"><a href="tel:112" class="callb" aria-label="Llamar al 112">112</a><div><b>Si dudas, llama al 112.</b><span class="xs db">Llamada gratuita, también sin saldo.</span></div></div>`;
 
 /* ===================== Árboles de decisión ===================== */
@@ -88,7 +88,7 @@ V.g=function(){const x=X();let h=`<h1 class="sr">Guía</h1>${chips(GSEC,gsec,'gs
   <section class="card"><div class="k">Pasar desapercibido</div><ul class="ul0">${f.perfil.map(s=>`<li>${esc(s)}</li>`).join('')}</ul></section>
   <section class="card"><div class="k">Qué esperar</div><dl class="dl2">${f.esperar.map(([a,b])=>`<dt>${esc(a)}</dt><dd>${esc(b)}</dd>`).join('')}</dl></section>
   <section class="card"><div class="k">Si os separáis</div><p class="sm">${esc(f.reunir)}</p></section>
-  <section class="card"><div class="k">Salud mental y rutinas</div><p class="sm">${esc(f.mente)}</p></section>${f.casa?`<section class="card"><div class="k">Violencia en casa</div><p class="sm">${esc(f.casa)}</p><button type="button" class="gh sm" onclick="gsec='como';gfic='vg';render();window.scrollTo(0,0)">Ver ficha</button></section>`:''}<p class="xs mut">Base: ${esc(FH_SRC.join(' · '))}.</p>`}
+  <section class="card"><div class="k">Salud mental y rutinas</div><p class="sm">${esc(f.mente)}</p></section>${f.casa?`<section class="card"><div class="k">Violencia doméstica</div><p class="sm">${esc(f.casa)}</p><button type="button" class="gh sm" onclick="gsec='como';gfic='vg';render();window.scrollTo(0,0)">Ver ficha</button></section>`:''}<p class="xs mut">Base: ${esc(FH_SRC.join(' · '))}.</p>`}
  else if(gsec==='h72'){const t=H72[escG];h+=`<p class="lead">Qué decidir en la primera hora, el primer día y el tercer día.</p>${gravChips()}${g.extremo?'<p class="box dash">Escenario extremo y no oficial.</p>':''}${[['h1','Primera hora'],['d1','Día 1'],['d3','Día 3']].map(([k,l])=>`<section class="card"><div class="k">${l}</div><ol class="steps">${t[k].map(s=>`<li>${esc(s)}</li>`).join('')}</ol></section>`).join('')}<p class="xs mut">Base: ${esc([S5.PC,S5.UE,S5.FE].join(' · '))}.</p>`}
  else if(gsec==='como')h+=comoView();
  else if(gsec==='radio')h+=radioView();

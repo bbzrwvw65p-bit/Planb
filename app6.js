@@ -68,13 +68,13 @@ function joinView(){if(joinP)return joinWho();
 function newD(){return{ver:6,inicio:today(),nivel:1,misiones:[],registro:[],repasos:[],aver:[],cfg:{},pasados:[],skills:{},vehiculos:[],personas:[],mascotas:[]}}
 function joinPrep(){if(!D){D=newD();migrate5()}}
 function joinApply(P){if(!P.hogar||!P.hogar.length){note('Ese QR no lleva la ficha del hogar. Pide que la marquen al compartir.');return}
- const r=applyUnidad(P);if(r.err)return note(r.err);D.unidad.id=P.unidad.id;if(P.unidad.nombre)D.unidad.nombre=P.unidad.nombre;joinP={alias:P.alias||'otro miembro',conf:r.conf};save();render()}
+ const r=applyUnidad(P);if(r.err)return note(r.err);{const jm=D.unidad.miembros[P.dev];if(jm)jm._teVe=false}D.unidad.id=P.unidad.id;if(P.unidad.nombre)D.unidad.nombre=P.unidad.nombre;joinP={alias:P.alias||'otro miembro',conf:r.conf};save();render()}
 function joinWho(){const ps=D.personas||[];
  return `<section class="form" aria-labelledby="jw"><div class="k">Unido a ${esc(D.unidad.nombre||'la unidad')}</div><h1 class="h2" id="jw">¿QUIÉN ERES TÚ?</h1><p class="sm">Datos recibidos de ${esc(joinP.alias)}. Elige tu ficha: desde ahora solo tú la editas.</p>
  <div class="elist">${ps.map((p,i)=>`<button type="button" class="ebtn" onclick="joinPick('${p.id}')"><b>${esc(pname(p,i).toUpperCase())}</b><span aria-hidden="true">›</span></button>`).join('')}<button type="button" class="ebtn" onclick="joinPick('')"><b>NO ESTOY EN LA LISTA</b><span aria-hidden="true">›</span></button></div>
  <p class="xs mut">Si no estás, se crea tu ficha y la rellenas tú.</p></section>`}
 function joinPick(id){if(!id){const p={id:uid(),_o:D.dev};touch(p);D.personas.push(p);D.hogar.nper=D.personas.length;id=p.id}
- joinP=null;startMode=null;setYo(id);askedFill=false;checkLevel();save();boot();setTimeout(dupAsk,50)}
+ joinP=null;startMode=null;setYo(id);askedFill=false;checkLevel();save();boot();setTimeout(async()=>{await dupAsk();const m=Object.values(D.unidad.miembros||{}).find(x=>x._teVe===false);if(m)vueltaAsk(m.alias)},50)}
 
 /* ===================== Personas repetidas ===================== */
 const nkey=s=>String(s||'').trim().toLocaleLowerCase('es').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
@@ -138,7 +138,11 @@ handlePayload=async function(P){if(!P||typeof P!=='object')return note('Contenid
   if(pv>APPV_N){await ask(`<h2>Este móvil tiene una versión más antigua</h2><p>El otro móvil usa la versión ${esc(P.av)} y este la ${APPV}. Actualiza este primero: con internet, cierra Plan B del todo y vuelve a abrirla.</p>`,'Entendido',null);return}
   if(startMode==='join'&&(!D||!D.hogar)){joinPrep();return joinApply(P)}
   if(!D||!D.hogar)return note('Primero empieza un hogar o únete a uno.');
-  await handle5(P);if(dupList().length)setTimeout(dupAsk,60);return}
+  const before=JSON.stringify(D.unidad.miembros[P.dev]||null);await handle5(P);
+  const m=D.unidad&&D.unidad.miembros&&D.unidad.miembros[P.dev],changed=JSON.stringify(m||null)!==before;
+  if(m&&changed){m._teVe=(P.miembros||[]).some(x=>x&&x.dev===D.dev);save();render()}
+  if(dupList().length)await dupAsk();
+  if(m&&changed&&!m._teVe)setTimeout(vueltaAsk,80,m.alias);return}
  if(!D||!D.hogar)return note('Primero empieza un hogar o únete a uno.');
  return handle5(P)};
 
@@ -191,7 +195,7 @@ const Vp5=V.p;V.p=function(){let pre='';
 /* ===================== Tus datos ===================== */
 function privacyView(){const bk=LS.getItem(BK_KEY);let bkd=null;try{bkd=bk&&JSON.parse(bk).at}catch(e){}
  return `<h1 class="sr">Tus datos</h1><button type="button" class="gh sm" onclick="sub=null;render()">‹ Perfil</button><h2 class="h2" style="margin-top:12px">TUS DATOS</h2>
- <section class="card"><ul class="ul0"><li>Todo se guarda <b>solo en este móvil</b>, en el almacenamiento del navegador (localStorage).</li><li>No hay cuentas, ni servidor que reciba tus datos, ni analítica, ni rastreadores.</li><li>La app no hace por sí sola ninguna petición a terceros: la letra, las librerías de QR y las frecuencias van dentro de la app.</li><li>Funciona sin conexión. Solo se conecta para descargar o actualizar sus propios archivos desde GitHub Pages, donde está publicada; GitHub puede registrar esa visita técnica como en cualquier web, pero tus datos no viajan.</li><li><b>Enlaces externos (↗):</b> la app nunca los abre ni los carga sola. Solo si tocas uno se abre en el navegador, y esa web sí ve tu visita. Lo esencial está dentro de la app.</li><li>La app no guarda qué pantallas o árboles consultas. De las fichas «Cómo se hace» anota que la abriste (para tu habilidad), nunca la de violencia en casa.</li><li>No hay cifrado propio: protege el móvil con código o huella.</li></ul></section>
+ <section class="card"><ul class="ul0"><li>Todo se guarda <b>solo en este móvil</b>, en el almacenamiento del navegador (localStorage).</li><li>No hay cuentas, ni servidor que reciba tus datos, ni analítica, ni rastreadores.</li><li>La app no hace por sí sola ninguna petición a terceros: la letra, las librerías de QR y las frecuencias van dentro de la app.</li><li>Funciona sin conexión. Solo se conecta para descargar o actualizar sus propios archivos desde GitHub Pages, donde está publicada; GitHub puede registrar esa visita técnica como en cualquier web, pero tus datos no viajan.</li><li><b>Enlaces externos (↗):</b> la app nunca los abre ni los carga sola. Solo si tocas uno se abre en el navegador, y esa web sí ve tu visita. Lo esencial está dentro de la app.</li><li>La app no guarda qué pantallas o árboles consultas. De las fichas «Cómo se hace» anota que la abriste (para tu habilidad), nunca la de violencia doméstica.</li><li>No hay cifrado propio: protege el móvil con código o huella.</li></ul></section>
  <section class="card inv"><div class="k">▲ Cuándo se pierden los datos</div><ul class="ul0"><li><b>iPhone:</b> si borras el icono de Plan B de la pantalla de inicio, se borran también sus datos.</li><li>Si cambia la dirección de la app, la nueva empieza vacía: cada dirección guarda sus datos por separado.</li><li>En una pestaña de Safari sin instalar, iOS puede borrarlos tras 7 días sin abrirla.</li><li>Borrar los datos del navegador también los borra.</li></ul><p class="sm">Por eso, haz una copia de seguridad de vez en cuando: la app te lo recuerda cada 30 días.</p></section>
  <section class="card"><div class="k">Al compartir</div><ul class="ul0"><li><b>QR:</b> va directo de una pantalla a la cámara del otro móvil, sin internet.</li><li><b>Unidad:</b> antes de enviar eliges qué va: hogar, cada persona, registro, animales y plan sin red. Salud, contactos, peso y altura y ubicaciones exactas van desmarcados al principio. Los datos personales de otra persona solo los comparte su dueño. Lo que no envíes no se borra en el otro móvil.</li><li><b>Amigos:</b> solo la tarjeta de estadísticas (alias, nivel, rango, XP, fecha y, si quieres, el nombre de tus medallas). Nunca inventario, salud, ubicaciones ni dirección.</li><li><b>Archivo:</b> antes de enviarlo ves su contenido exacto. No va cifrado por Plan B. WhatsApp cifra los mensajes de extremo a extremo. Los chats normales de Telegram y el correo quedan guardados en sus servidores (los chats secretos de Telegram sí van de extremo a extremo). En todos los casos, <b>quien lo recibe puede leerlo</b>.</li><li><b>Copia de seguridad:</b> lleva todo; guárdala en un sitio tuyo.</li></ul></section>
  <section class="card"><div class="k">Versión</div><p class="sm">Plan B ${APPV} · datos en formato ${D.ver}.</p><p class="xs mut">El QR y el archivo de la Unidad llevan la versión: si el otro móvil tiene otra, se pide actualizar antes de unir.${bkd?' Copia automática antes de la última actualización: '+esc(fmtD(String(bkd).slice(0,10)))+'.':''}</p></section>
@@ -204,3 +208,9 @@ if('serviceWorker'in navigator){navigator.serviceWorker.addEventListener('contro
  addEventListener('load',()=>{navigator.serviceWorker.getRegistration().then(reg=>{if(!reg)return;const mark=()=>{if(navigator.serviceWorker.controller){swNew=true;if(D&&D.hogar&&tab==='p'&&!wz)render()}};
   if(reg.waiting)mark();reg.addEventListener('updatefound',()=>{const w=reg.installing;if(w)w.addEventListener('statechange',()=>{if(w.state==='installed')mark()})})}).catch(()=>{})})}
 boot();
+
+/* ===================== Vuelta del QR: que el otro móvil también te vea ===================== */
+async function vueltaAsk(al){const n=esc(al||'el otro móvil');
+ if(await ask(`<h2>Ahora al revés</h2><p>Ya tienes los datos de <b>${n}</b>, pero ${n} todavía no tiene los tuyos. Enséñale tu QR para que en su móvil también salgáis los dos.</p>`,'Mostrar mi QR','Más tarde')){go('e');shareStart('u','qr')}}
+const Ve6=V.e;V.e=function(){const h=Ve6(),f=Object.values(D.unidad.miembros||{}).filter(m=>m._teVe===false);if(!f.length)return h;
+ return `<section class="box inv"><b>Falta la vuelta del QR.</b> <span class="sm">${esc(f.map(m=>m.alias||'Miembro').join(', '))} aún no tiene tus datos: enséñale tu QR para que te vea en su móvil.</span><div class="row"><button type="button" class="btn" onclick="shareStart('u','qr')">Mostrar mi QR</button></div></section>`+h};

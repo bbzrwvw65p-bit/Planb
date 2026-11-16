@@ -148,7 +148,7 @@ function mXP(m,d){const out={a:{},f:0,frozen:0,fac:0,needSk:[]};if(!m||!d)return
 function maxXP(lv,x){const a={},f={};levelDefs(lv,x).forEach(d=>{const v=XPB[d.ty]*(d.ty==='i'||d.ty==='s'?.8:1);split(d,v,a);f[d.f]=(f[d.f]||0)+v;(d.tm||[]).forEach(()=>{a.rsp=(a.rsp||0)+TXP;f[d.f]=(f[d.f]||0)+TXP})});(REQ[lv]||[]).forEach(k=>{a.hab=(a.hab||0)+SKXP;const fr=skFront(k);f[fr]=(f[fr]||0)+SKXP});return{a,f}}
 function score(){const x=X(),A={},F={};let frozen=0;ATR.forEach(([k])=>A[k]=0);FR.forEach(([k])=>F[k]=0);
  D.misiones.forEach(m=>{const d=defK(m.key);if(!d||!visible(d,x))return;const r=mXP(m,d);Object.entries(r.a).forEach(([k,v])=>A[k]+=v);F[d.f]+=r.f;frozen+=r.frozen});
- /* v6: habilidades Aprendidas y vigentes (la ficha de violencia en casa nunca puntúa) */
+ /* v6: habilidades Aprendidas y vigentes (la ficha de violencia doméstica nunca puntúa) */
  const sk=skillXP();A.hab+=sk.v;Object.entries(sk.f).forEach(([k,v])=>{if(F[k]!=null)F[k]+=v});frozen+=sk.frozen;
  /* v6: los mínimos de nivel solo cuentan misiones y habilidades Aprendidas; lo demás suma al total, no desbloquea */
  const AM={};ATR.forEach(([k])=>AM[k]=Math.round(A[k]));

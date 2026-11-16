@@ -1,4 +1,4 @@
-/* Plan B v6 · Fichas «Cómo se hace» y ayuda ante la violencia en casa.
+/* Plan B v6 · Fichas «Cómo se hace» y ayuda ante la violencia doméstica.
    Lo esencial va escrito aquí y funciona sin conexión. Los enlaces (↗) solo amplían: necesitan internet,
    la app nunca los abre sola y solo se abren si el usuario los toca (target _blank, rel noopener noreferrer).
    Cada enlace se comprobó con curl (HTTP 200) el 16 nov 2026. */
@@ -174,7 +174,7 @@ const FICHAS=[
    'Con asma u otra enfermedad respiratoria crónica: sigue tu tratamiento y ten la medicación cerca.',
    'Si empeoran los síntomas respiratorios, llama al 112.']}],
   src:[S52.SAN22,S52.AEP22,S52.SCS],links:['san_calima','aep_calima','scs_calima']},
- {k:'vg',t:'Violencia en casa o de pareja',vg:true,noScore:true,d:'Recursos oficiales, cómo pedir ayuda con discreción y qué hacer si eres testigo.',
+ {k:'vg',t:'Violencia doméstica o de pareja',vg:true,noScore:true,d:'Recursos oficiales, cómo pedir ayuda con discreción y qué hacer si eres testigo.',
   act:[['112','Llamar al 112 · peligro ahora'],['016','Llamar al 016 · gratuito, 24 h']],
   sec:[{h:'Si hay peligro ahora',s:[
    'Llama al 112. También puedes llamar al 091 (Policía Nacional) o al 062 (Guardia Civil).',
@@ -218,8 +218,8 @@ const fichaDef=k=>FICHAS.find(f=>f.k===k);
 const FICHA_EN={h_rcp:['rcp'],h_pls:['pls','rcp'],h_atrag:['atrag','rcp'],h_sangre:['hemo'],h_quem:['quem'],k_golpe:['calor'],k_fin:['calor'],w_trat:['agua'],g_gas:['gas'],s_salir:['gas'],e_prep:['gas'],f_peq:['extintor'],f_aceite:['extintor'],h_otro:['pls','rcp'],v_peligro:[]};
 const MIS_FICHA={auxilios:['rcp','pls','atrag','hemo','quem'],auxilios2:['rcp','pls','atrag','hemo'],botiquin:['hemo','quem'],botiquin2:['hemo','quem'],seguridad:['extintor','gas'],tratar:['agua'],cuadro:['gas']};
 
-/* Árbol «Violencia en casa o de pareja» */
-const T5_VG={id:'vg',t:'Violencia en casa o de pareja',direct:true,vg:true,start:'vg0',n:{
+/* Árbol «Violencia doméstica o de pareja» */
+const T5_VG={id:'vg',t:'Violencia doméstica o de pareja',direct:true,vg:true,start:'vg0',n:{
  vg0:{q:'¿A quién le está pasando?',o:[['A mí: pareja, expareja o alguien de casa','vg1'],['A un niño, niña o adolescente','vg_menor'],['A una persona mayor o dependiente','vg_mayor'],['Soy testigo o vecino','vg_test']]},
  vg1:{q:'¿Hay peligro ahora mismo?',o:[['Sí, ahora','vg_ya'],['No ahora, pero pasa o tengo miedo','vg2'],['No lo sé','vg_ya']]},
  vg_ya:{fin:'Peligro ahora',call:true,s:['Llama al 112. También 091 (Policía Nacional) o 062 (Guardia Civil).','Si estás en Canarias, el 112 tiene un servicio especializado en violencia de género, las 24 horas.','Con AlertCops y el perfil de víctima de violencia de género: Botón SOS 5 veces en menos de 6 segundos (ubicación y 10 s de audio a la policía).','Cuando estés a salvo, el 016 te informa y asesora, gratis y las 24 horas.'],tel:[['091','091'],['062','062']],ficha:['vg'],src:[S52.IGU,S52.ICI,S52.INT]},
