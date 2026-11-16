@@ -1,7 +1,7 @@
-/* Plan B v5 · Interfaz nueva: «Tengo un problema», Guía (escenarios, factores humanos, 72 h, radio, plan sin red, simulacros),
+/* Plan B v6 (desde v5) · Interfaz: «Tengo un problema», Guía (escenarios, factores humanos, 72 h, radio, plan sin red, simulacros),
    Equipo (Unidad y Amigos por QR o archivo), «Tus datos» y migración v4 → v5. */
 'use strict';
-let sub=null,gsec='esc',escG='eme',escL=1,tree=null,scanUI=null,drill=null,drillTick=null,shareUI=null,cmpFriend=null;
+let gfic=null,sub=null,gsec='esc',escG='eme',escL=1,tree=null,scanUI=null,drill=null,drillTick=null,shareUI=null,cmpFriend=null;
 
 /* ===================== Migración v4 → v5 ===================== */
 function migrate5(){if(!D)return;const was=D.ver||0,t0=nowMs();
@@ -33,30 +33,45 @@ const bigHelp=()=>`<button type="button" class="help" onclick="openEmg()"><span 
 const call112=()=>`<div class="c112"><a href="tel:112" class="callb" aria-label="Llamar al 112">112</a><div><b>Si dudas, llama al 112.</b><span class="xs db">Llamada gratuita, también sin saldo.</span></div></div>`;
 
 /* ===================== Árboles de decisión ===================== */
-const TREE_ORDER=['herido','fuegocasa','cogas','inunda','sismo','fuegocerca','perdida','calor','evac','apagon','agua','sincom','pagos','calle'];
+const TREE_ORDER=['herido','fuegocasa','cogas','inunda','sismo','fuegocerca','perdida','calor','evac','apagon','agua','sincom','pagos','calle','vg'];
 const tDef=id=>T5.find(t=>t.id===id);
-function tNode(id){if(T5V[id])return T5V[id];return tDef(tree.id).n[id]}
+function tNode(id){if(id[0]==='#')return {fic:id.slice(1)};if(T5V[id])return T5V[id];return tDef(tree.id).n[id]}
 function openEmg(){tree={id:null,node:null,hist:[]};renderEmg()}
 function closeEmg(){tree=null;const el=$('#emg');el.hidden=true;el.innerHTML='';document.body.classList.remove('lock');const b=$('#sosb');if(b)b.focus()}
 function tStart(id){const t=tDef(id);tree={id,node:t.direct?t.start:'v1',hist:[]};renderEmg()}
 function tGo(dest){tree.hist.push([tree.id,tree.node]);if(dest==='@start')tree.node=tDef(tree.id).start;else if(dest[0]==='>'){tree.id=dest.slice(1);tree.node=tDef(tree.id).start}else tree.node=dest;renderEmg()}
 function tBack(){const h=tree.hist.pop();if(!h){openEmg();return}tree.id=h[0];tree.node=h[1];renderEmg()}
 function stepTxt(s){const x=X(),r=(k,re)=>{const a=where(k,re);return a.length?a.join(' · '):null};try{return typeof s==='function'?s(x,r):s}catch(e){return null}}
+/* ===================== Fichas «Cómo se hace» (v5.2) ===================== */
+const telA=(n,l,cls)=>`<a class="${cls||'gh'}" href="tel:${esc(n)}">${esc(l)}</a>`;
+function linksHtml(ids,vg){const L=(ids||[]).map(id=>LNK[id]).filter(Boolean);if(!L.length)return '';
+ return `<section class="box dash xl"><div class="k">Para ampliar · necesita internet</div><p class="xs mut">Lo esencial ya está en esta ficha y funciona sin conexión. Estos enlaces solo se abren si los tocas: van al navegador y esa web ve la visita.${vg?' La visita también puede quedar en el historial del navegador.':''}</p><ul class="xll">${L.map(l=>`<li><a class="xlink" href="${esc(l.u)}" target="_blank" rel="noopener noreferrer">${esc(l.t)}<span aria-hidden="true"> ↗</span><span class="sr"> (abre una web externa, necesita internet)</span></a><span class="xs mut db">${esc(l.o)} · necesita internet</span></li>`).join('')}</ul></section>`}
+const quick=()=>`<button type="button" class="gh wide" onclick="salirRapido()">Salir rápido</button>`;
+function salirRapido(){if(tree)closeEmg();closeOv();gfic=null;go('p')}
+function fichaHtml(k,inEmg){const f=fichaDef(k);if(!f)return '';
+ return `${inEmg?'':call112()}<p class="sm mut">${esc(f.d)}</p>${f.act?`<div class="acts">${f.act.map(([n,l])=>telA(n,l,'btn')).join('')}</div>`:''}${f.vg&&!inEmg?quick():''}
+ ${f.sec.map(s=>`<section class="card"><h3 class="k">${esc(s.h)}</h3><ol class="steps">${s.s.map(x=>`<li>${esc(x)}</li>`).join('')}</ol></section>`).join('')}
+ ${f.nota?`<p class="box">${esc(f.nota)}</p>`:''}<p class="xs mut">Fuente: ${esc(f.src.join(' · '))}. Sigue siempre las indicaciones del 112 y de las autoridades.</p>${linksHtml(f.links,f.vg)}`}
+function fichaBtns(ks){return ks&&ks.length?`<div class="fbtns"><p class="k">Cómo se hace</p>${ks.map(k=>`<button type="button" class="ebtn fb" onclick="tGo('#${k}')"><b>${esc(fichaDef(k).t)}</b><span aria-hidden="true">›</span></button>`).join('')}</div>`:''}
+function openFicha(k){const f=fichaDef(k);openOv(`<div class="eh"><h1 class="h2" id="ovt" tabindex="-1">${esc(f.t.toUpperCase())}</h1><button type="button" class="gh sm" onclick="closeOv()">Cerrar</button></div>${fichaHtml(k)}<button type="button" class="gh wide" onclick="closeOv()">Cerrar</button>`)}
+function comoView(){if(gfic&&fichaDef(gfic)){const f=fichaDef(gfic);return `<button type="button" class="gh sm" onclick="gfic=null;render();window.scrollTo(0,0)">‹ Cómo se hace</button><h2 class="h2" style="margin-top:12px">${esc(f.t.toUpperCase())}</h2>${fichaHtml(gfic)}`}
+ return `<p class="lead">Pasos esenciales de lo que la app recomienda. Funcionan sin internet; cada ficha enlaza a su fuente oficial para ampliar (necesita conexión).</p><div class="elist">${FICHAS.map(f=>`<button type="button" class="ebtn" onclick="gfic='${f.k}';render();window.scrollTo(0,0)"><span><b>${esc(f.t.toUpperCase())}</b><span class="xs mut db" style="letter-spacing:0">${esc(f.d)}</span></span><span aria-hidden="true">›</span></button>`).join('')}</div>`}
 function renderEmg(){const el=$('#emg');let h=`<div class="eh"><h1 class="h2" id="emgt" tabindex="-1">${tree.id?esc(tDef(tree.id).t.toUpperCase()):'TENGO UN PROBLEMA'}</h1><button type="button" class="gh sm" onclick="closeEmg()">Cerrar</button></div>${call112()}`;
  if(!tree.id){h+=`<p class="sm mut">Elige lo que pasa. Una pregunta por pantalla. Funciona sin internet y sin perfil.</p><div class="elist">${TREE_ORDER.map(id=>`<button type="button" class="ebtn" onclick="tStart('${id}')"><b>${esc(tDef(id).t.toUpperCase())}</b><span aria-hidden="true">›</span></button>`).join('')}</div>`;
   if(D&&D.hogar){const ct=[];if(ans(D.hogar.punto)&&D.hogar.punto!=='Aún no hay')ct.push(['Punto de encuentro',D.hogar.punto]);if(ans(D.hogar.contactoExt)&&D.hogar.contactoExt!=='Aún no hay')ct.push(['Contacto fuera de la zona',D.hogar.contactoExt]);(D.personas||[]).forEach((p,i)=>{if(ans(p.contacto))ct.push([pname(p,i)+' llama a',p.contacto])});
    if(ct.length)h+=`<div class="card"><div class="k">Contactos de tu perfil</div><dl class="dl sm">${ct.map(c=>`<dt>${esc(c[0])}</dt><dd>${esc(c[1])}</dd>`).join('')}</dl></div>`}}
  else{const n=tNode(tree.node);
-  if(n.q){const hint=n.hint?stepTxt(n.hint):null;h+=`<p class="k">Pregunta ${tree.hist.length+1}</p><h2 class="tq">${esc(n.q)}</h2>${hint?`<p class="box">${esc(hint)}</p>`:''}<div class="elist">${n.o.map(([l,d])=>`<button type="button" class="ebtn ans" onclick="tGo('${d}')"><b>${esc(l)}</b><span aria-hidden="true">›</span></button>`).join('')}</div>`}
-  else{const steps=n.s.map(stepTxt).filter(Boolean);h+=`<p class="k">Qué hacer</p><h2 class="mt">${esc(n.fin.toUpperCase())}</h2>${n.call?'<a class="btn wide" href="tel:112">Llamar al 112</a>':''}<ol class="steps">${steps.map(s=>`<li>${esc(s)}</li>`).join('')}</ol>${n.next?`<button type="button" class="btn wide" onclick="tGo('${n.next}')">Seguir</button>`:''}<p class="xs mut">Fuente: ${esc((n.src||[]).join(' · '))}. Sigue siempre las indicaciones de las autoridades.</p>`}
-  h+=`<div class="row end"><button type="button" class="gh" onclick="tBack()">‹ Atrás</button><button type="button" class="gh" onclick="openEmg()">Reiniciar</button></div>`}
+  if(n.fic){h+=`<p class="k">Cómo se hace</p><h2 class="mt">${esc(fichaDef(n.fic).t.toUpperCase())}</h2>${fichaHtml(n.fic,true)}`}
+  else if(n.q){const hint=n.hint?stepTxt(n.hint):null;h+=`<p class="k">Pregunta ${tree.hist.length+1}</p><h2 class="tq">${esc(n.q)}</h2>${hint?`<p class="box">${esc(hint)}</p>`:''}<div class="elist">${n.o.map(([l,d])=>`<button type="button" class="ebtn ans" onclick="tGo('${d}')"><b>${esc(l)}</b><span aria-hidden="true">›</span></button>`).join('')}</div>`}
+  else{const steps=n.s.map(stepTxt).filter(Boolean);h+=`<p class="k">Qué hacer</p><h2 class="mt">${esc(n.fin.toUpperCase())}</h2>${n.call?'<a class="btn wide" href="tel:112">Llamar al 112</a>':''}<ol class="steps">${steps.map(s=>`<li>${esc(s)}</li>`).join('')}</ol>${n.tel?`<div class="acts">${n.tel.map(([a,l])=>telA(a,l)).join('')}</div>`:''}${fichaBtns(n.ficha||FICHA_EN[tree.node])}${n.next?`<button type="button" class="btn wide" onclick="tGo('${n.next}')">Seguir</button>`:''}<p class="xs mut">Fuente: ${esc((n.src||[]).join(' · '))}. Sigue siempre las indicaciones de las autoridades.</p>`}
+  h+=`<div class="row end"><button type="button" class="gh" onclick="tBack()">‹ Atrás</button><button type="button" class="gh" onclick="openEmg()">Reiniciar</button></div>${tDef(tree.id).vg?quick():''}`}
  el.innerHTML=`<div class="ein" role="dialog" aria-modal="true" aria-labelledby="emgt">${h}</div>`;el.hidden=false;document.body.classList.add('lock');el.scrollTop=0;$('#emgt').focus()}
 addEventListener('keydown',e=>{if(e.key==='Escape'){if(scanUI)closeOv();else if(tree)closeEmg()}});
 
 /* ===================== Guía ===================== */
-const GSEC=[['esc','Escenarios'],['fh','Factores humanos'],['h72','Primeras 72 h'],['radio','Radio'],['plan','Plan sin red'],['sim','Simulacros']];
+const GSEC=[['esc','Escenarios'],['fh','Factores humanos'],['h72','Primeras 72 h'],['como','Cómo se hace'],['radio','Radio'],['plan','Plan sin red'],['sim','Simulacros']];
 const chips=(arr,cur,fn)=>`<div class="opts chips">${arr.map(([k,l])=>`<button type="button" class="opt ${k==cur?'on':''}" aria-pressed="${k==cur}" onclick="${fn}('${k}')">${esc(l)}</button>`).join('')}</div>`;
-function gs(k){gsec=k;render();window.scrollTo(0,0)}function sG(k){escG=k;render()}function sL(k){escL=+k;render()}
+function gs(k){gsec=k;gfic=null;render();window.scrollTo(0,0)}function sG(k){escG=k;render()}function sL(k){escL=+k;render()}
 const gravChips=()=>chips(GRAV.map(g=>[g.k,g.t]),escG,'sG');
 const stTag=st=>`<span class="st st-${st}">${EST[st]}</span>`;
 V.g=function(){const x=X();let h=`<h1 class="sr">Guía</h1>${chips(GSEC,gsec,'gs')}`;
@@ -73,8 +88,9 @@ V.g=function(){const x=X();let h=`<h1 class="sr">Guía</h1>${chips(GSEC,gsec,'gs
   <section class="card"><div class="k">Pasar desapercibido</div><ul class="ul0">${f.perfil.map(s=>`<li>${esc(s)}</li>`).join('')}</ul></section>
   <section class="card"><div class="k">Qué esperar</div><dl class="dl2">${f.esperar.map(([a,b])=>`<dt>${esc(a)}</dt><dd>${esc(b)}</dd>`).join('')}</dl></section>
   <section class="card"><div class="k">Si os separáis</div><p class="sm">${esc(f.reunir)}</p></section>
-  <section class="card"><div class="k">Salud mental y rutinas</div><p class="sm">${esc(f.mente)}</p></section><p class="xs mut">Base: ${esc(FH_SRC.join(' · '))}.</p>`}
+  <section class="card"><div class="k">Salud mental y rutinas</div><p class="sm">${esc(f.mente)}</p></section>${f.casa?`<section class="card"><div class="k">Violencia en casa</div><p class="sm">${esc(f.casa)}</p><button type="button" class="gh sm" onclick="gsec='como';gfic='vg';render();window.scrollTo(0,0)">Ver ficha</button></section>`:''}<p class="xs mut">Base: ${esc(FH_SRC.join(' · '))}.</p>`}
  else if(gsec==='h72'){const t=H72[escG];h+=`<p class="lead">Qué decidir en la primera hora, el primer día y el tercer día.</p>${gravChips()}${g.extremo?'<p class="box dash">Escenario extremo y no oficial.</p>':''}${[['h1','Primera hora'],['d1','Día 1'],['d3','Día 3']].map(([k,l])=>`<section class="card"><div class="k">${l}</div><ol class="steps">${t[k].map(s=>`<li>${esc(s)}</li>`).join('')}</ol></section>`).join('')}<p class="xs mut">Base: ${esc([S5.PC,S5.UE,S5.FE].join(' · '))}.</p>`}
+ else if(gsec==='como')h+=comoView();
  else if(gsec==='radio')h+=radioView();
  else if(gsec==='plan')h+=planView();
  else if(gsec==='sim')h+=simView();
@@ -182,7 +198,7 @@ async function shareStart(kind,mode){if(kind==='u'&&!D.yo){note('Antes, indica q
  const warn=kind==='u'?'<p class="box inv"><b>Solo para quien vive contigo.</b> Este contenido lleva datos de tu casa y de su gente.</p>':'<p class="box">Solo la tarjeta de estadísticas. Por eso nunca lleva inventario, salud, ubicaciones ni dirección.</p>';
  if(mode==='file'){const json=JSON.stringify(P,null,2);
   openOv(`<div class="eh"><h1 class="h2" id="ovt" tabindex="-1">ENVIAR ARCHIVO</h1><button type="button" class="gh sm" onclick="closeOv()">Cerrar</button></div>${warn}<div class="card"><div class="k">Qué lleva el archivo</div><ul class="ul0">${sum.map(s=>`<li>${esc(s)}</li>`).join('')}</ul></div>
-  <p class="sm">El archivo no va cifrado. Si lo mandas por WhatsApp, Telegram o correo, lo protege esa app durante el envío, pero <b>quien lo recibe puede leerlo</b> entero.</p><details class="card" open><summary><span class="k">Vista previa · contenido exacto</span></summary><pre class="pre">${esc(json)}</pre></details>
+  <p class="sm">Plan B no cifra el archivo. WhatsApp cifra los mensajes de extremo a extremo; los chats normales de Telegram y el correo quedan guardados en sus servidores (los chats secretos de Telegram sí van de extremo a extremo). En todos los casos, <b>quien lo recibe puede leerlo</b> entero.</p><details class="card" open><summary><span class="k">Vista previa · contenido exacto</span></summary><pre class="pre">${esc(json)}</pre></details>
   <div class="row end"><button type="button" class="gh" onclick="closeOv()">Cancelar</button><button type="button" class="btn" onclick="shareSend('${kind}')">Enviar</button></div>`);return}
  openOv(`<div class="eh"><h1 class="h2" id="ovt" tabindex="-1">${kind==='u'?'QR DE LA UNIDAD':'MI TARJETA'}</h1><button type="button" class="gh sm" onclick="closeOv()">Cerrar</button></div><p class="sm">El QR va directo de tu pantalla a la cámara del otro móvil. No pasa por internet.</p>${warn}<div id="qrbox" class="qrbox"><p class="sm mut">Generando…</p></div><details class="card"><summary><span class="k">Qué lleva</span></summary><ul class="ul0">${sum.map(s=>`<li>${esc(s)}</li>`).join('')}</ul><pre class="pre">${esc(JSON.stringify(P,null,2))}</pre></details>`);
  let frames;try{frames=await packFrames(P)}catch(e){$('#qrbox').innerHTML='<p class="sm">No se pudo generar el QR. Usa el archivo.</p>';return}
@@ -208,17 +224,18 @@ async function handlePayload(P){if(!P||typeof P!=='object')return note('Contenid
 
 /* ===================== Tus datos (privacidad) ===================== */
 function privacyView(){return `<h1 class="sr">Tus datos</h1><button type="button" class="gh sm" onclick="sub=null;render()">‹ Perfil</button><h2 class="h2" style="margin-top:12px">TUS DATOS</h2>
- <section class="card"><ul class="ul0"><li>Todo se guarda <b>solo en este móvil</b>, en el almacenamiento del navegador (localStorage).</li><li>No hay cuentas, ni servidor que reciba tus datos, ni analítica, ni rastreadores.</li><li>La app no hace peticiones a terceros: la letra, las librerías de QR y las frecuencias van dentro de la app.</li><li>Funciona sin conexión. Solo se conecta para descargar o actualizar sus propios archivos desde GitHub Pages, donde está publicada; GitHub puede registrar esa visita técnica como en cualquier web, pero tus datos no viajan.</li><li>No hay cifrado propio: protege el móvil con código o huella.</li></ul></section>
+ <section class="card"><ul class="ul0"><li>Todo se guarda <b>solo en este móvil</b>, en el almacenamiento del navegador (localStorage).</li><li>No hay cuentas, ni servidor que reciba tus datos, ni analítica, ni rastreadores.</li><li>La app no hace por sí sola ninguna petición a terceros: la letra, las librerías de QR y las frecuencias van dentro de la app.</li><li>Funciona sin conexión. Solo se conecta para descargar o actualizar sus propios archivos desde GitHub Pages, donde está publicada; GitHub puede registrar esa visita técnica como en cualquier web, pero tus datos no viajan.</li><li><b>Enlaces externos (↗):</b> la app nunca los abre ni los carga sola. Solo si tocas uno se abre en el navegador, y esa web sí ve tu visita, como cualquier web. Lo esencial está dentro de la app y no necesita conexión.</li><li>La app no guarda qué pantallas, árboles o fichas consultas.</li><li>No hay cifrado propio: protege el móvil con código o huella.</li></ul></section>
  <section class="card"><div class="k">Al compartir</div><ul class="ul0"><li><b>QR:</b> va directo de una pantalla a la cámara del otro móvil, sin internet.</li><li><b>Unidad:</b> lleva la ficha del hogar, las fichas de las personas (con salud y contactos), el registro con ubicaciones, los animales, el plan sin red y tus puntos. Solo para quien vive contigo.</li><li><b>Amigos:</b> solo la tarjeta de estadísticas (alias, nivel, rango, XP, medallas y fecha). Nunca inventario, salud, ubicaciones ni dirección.</li><li><b>Archivo:</b> antes de enviarlo ves su contenido exacto. Por WhatsApp o Telegram lo protege esa app durante el envío, pero quien lo recibe puede leerlo.</li><li><b>Copia de seguridad:</b> lleva todo; guárdala en un sitio tuyo.</li></ul></section>
  <section class="card inv"><div class="k">Zona de peligro</div><p class="sm">Borra de este móvil todo lo que guarda Plan B. No se puede deshacer y no afecta a lo que ya hayas compartido.</p><button type="button" class="btn wide" style="background:#000;color:#fff" onclick="wipe()">Borrar todos mis datos</button></section>`}
 const Vf4=V.f;V.f=function(){return sub==='datos'?privacyView():Vf4()};
 
 /* ===================== Panel: botón de ayuda, simulacro y hogar ===================== */
+const offNote=()=>`<p class="offn xs" id="offn"><b>Funciona siempre sin internet.</b> Todo lo esencial va dentro de la app. Los enlaces marcados con ↗ son solo ampliación y necesitan conexión.</p>`;
 const Vp4=V.p;V.p=function(){let pre=bigHelp();
  if(drillDue())pre+=`<section class="card inv"><div class="k">Simulacro sorpresa</div><h2 class="h3">APAGÓN AHORA</h2><p class="sm">Haz como si se acabara de ir la luz y mide cuánto tardas.</p><div class="row"><button type="button" class="gh inv" onclick="drillSnooze()">Ahora no</button><button type="button" class="btn" style="background:#000;color:#fff" onclick="drillStart(true)">Empezar</button></div></section>`;
  const mem=Object.keys(D.unidad.miembros||{}).length;if(mem){const NH=nivelHogar();pre+=`<button type="button" class="card tl wide" onclick="go('e')"><span class="k">Unidad${D.unidad.nombre?' · '+esc(D.unidad.nombre):''}</span><b>Nivel del hogar ${pad2(NH.lv)}</b><span class="xs mut">${NH.rows.length} miembros · ${(D.sync.conf||[]).length?(D.sync.conf.length+' conflicto(s) por decidir'):'sube cuando todos llegan al mínimo'}</span></button>`}
- const h=Vp4();return h.replace('<h1 class="sr">Panel</h1>','<h1 class="sr">Panel</h1>'+pre)};
+ pre+=offNote();const h=Vp4();return h.replace('<h1 class="sr">Panel</h1>','<h1 class="sr">Panel</h1>'+pre)};
 
 /* ===================== Iconos nuevos y arranque ===================== */
 IC.g='<path d="M4 5h7v14H4zM13 5h7v14h-7z"/><path d="M6.5 9h2M15.5 9h2M6.5 12h2M15.5 12h2"/>';IC.e='<circle cx="8" cy="9" r="3"/><circle cx="16" cy="9" r="3"/><path d="M3 20c0-3 2.5-5 5-5s5 2 5 5M11 20c0-3 2.5-5 5-5s5 2 5 5"/>';
-boot();
+/* boot() se llama al final de app6.js */

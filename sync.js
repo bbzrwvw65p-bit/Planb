@@ -1,11 +1,11 @@
-/* Plan B v5 · Unidad y Amigos sin servidor: fusión registro a registro, QR (varios si hace falta) y archivo.
+/* Plan B v6 · Unidad y Amigos sin servidor: fusión registro a registro, QR (varios si hace falta) y archivo.
    Nada sale del móvil salvo lo que tú enseñas en un QR o envías en un archivo. Sin cifrado propio. */
 'use strict';
 const nowMs=()=>Date.now();
 const devOf=()=>D&&D.dev;
 function touch(r){if(r){r._u=nowMs();r._b=devOf()}return r}
 const isMine=r=>!r||!r._o||r._o===devOf();
-const SYNC_COLLS=['registro','mascotas','personas','par'];
+const SYNC_COLLS=['registro','mascotas','personas','par','vehiculos'];
 /* ---------- Fusión (función pura, probada en los tests) ---------- */
 const cmpKey=r=>{const o={};Object.keys(r||{}).sort().forEach(k=>{if(!['_u','_b','mision'].includes(k))o[k]=r[k]});return JSON.stringify(o)};
 function mergeColl(L,R,base,owner){const lm=new Map((L||[]).map(r=>[r.id,r])),rm=new Map((R||[]).map(r=>[r.id,r])),out=[],conf=[];
@@ -27,23 +27,42 @@ function collLocal(name){if(name==='hogar')return D.hogar?[Object.assign({id:'ho
  if(name==='plan')return D.plan?[Object.assign({id:'plan'},D.plan)]:[];
  return[...(D[name]||[]),...((D.tomb&&D.tomb[name])||[])]}
 function setLocal(name,arr){if(name==='hogar'){const h=arr[0];if(!h)return;const{id,_u,_b,...rest}=h;D.hogar=rest;D.meta.hogar={_u,_b};return}
+ if(!D.tomb[name])D.tomb[name]=[];
  if(name==='plan'){if(arr[0]){const{id,...rest}=arr[0];D.plan=rest}return}
  D[name]=arr.filter(r=>!r._del);D.tomb[name]=arr.filter(r=>r._del)}
 function tombstone(name,rec){if(!rec||!rec.id)return;D.tomb[name]=D.tomb[name]||[];D.tomb[name].push({id:rec.id,_del:1,_u:nowMs(),_b:devOf()})}
 /* ---------- Tarjetas y datos personales ---------- */
 function medallas(S){S=S||score();const m=[];(D.pasados||[]).forEach(l=>m.push('Nivel '+l+' superado'));if(D.fin&&!m.includes('Nivel 4 superado'))m.push('Nivel 4 superado');
  if((D.drills||[]).some(d=>d.sorpresa))m.push('Simulacro sorpresa medido');if((D.drills||[]).some(d=>d.sorpresa&&d.s<=DRILL.obj))m.push('Respuesta en objetivo');
- if(D.cfg.lastBackup)m.push('Copia de seguridad');if(planCompleto())m.push('Plan sin red acordado');if((D.par||[]).some(p=>p.hecha))m.push('Misión en pareja');return m}
-function myCard(){const S=score();return{t:'planb-amigo',v:5,id:D.dev,alias:D.cfg.alias||'',nivel:S.lv,fin:!!D.fin,rango:D.fin?'Nivel máximo':RANGOS[S.ri],xp:Object.fromEntries(ATR.map(([k])=>[k,S.A[k]])),total:S.T,medallas:medallas(S),at:new Date().toISOString()}}
-function myPersonal(){const S=score(),apr=[],tms=[];D.misiones.forEach(m=>{const d=defK(m.key);if(!d)return;if(m.hecha&&(d.ty==='s'||m.aprendido))apr.push(d.t);(d.tm||[]).forEach(([k,l])=>{const t=m.tiempos&&m.tiempos[k];if(t)tms.push([l,t.best])})});
- return{nivel:S.lv,fin:!!D.fin,rango:D.fin?'Nivel máximo':RANGOS[S.ri],xp:S.A,total:S.T,bloquean:S.block.map(k=>ATRN[k]),aprendido:apr,tiempos:tms,simulacros:(D.drills||[]).filter(d=>d.sorpresa).map(d=>[d.fecha,d.s]),medallas:medallas(S)}}
-function unidadPayload(){return{t:'planb-unidad',v:5,unidad:{id:D.unidad.id,nombre:D.unidad.nombre||''},dev:D.dev,alias:D.cfg.alias||'',yo:D.yo||null,at:new Date().toISOString(),
- hogar:collLocal('hogar'),plan:collLocal('plan'),registro:collLocal('registro').map(r=>{const o=Object.assign({},r);delete o.mision;return o}),mascotas:collLocal('mascotas'),personas:collLocal('personas'),par:collLocal('par'),
- personal:myPersonal(),card:myCard(),miembros:Object.values(D.unidad.miembros||{})}}
+ if(D.cfg.lastBackup)m.push('Copia de seguridad');if(planCompleto())m.push('Plan sin red acordado');if((D.par||[]).some(p=>p.hecha))m.push('Misión en pareja');
+ if(typeof courseMedals==='function')courseMedals().forEach(c=>m.push(c));return m}
+function myCard(){const S=score();return{t:'planb-amigo',v:6,av:APPV,id:D.dev,alias:D.cfg.alias||'',nivel:S.lv,fin:!!D.fin,rango:D.fin?'Nivel máximo':RANGOS[S.ri],xp:Object.fromEntries(ATR.map(([k])=>[k,S.A[k]])),total:S.T,medallas:D.cfg.noMedals?[]:medallas(S),at:new Date().toISOString()}}
+function myPersonal(){const S=score(),apr=[],tms=[];D.misiones.forEach(m=>{const d=defK(m.key);if(!d)return;if(m.hecha&&(d.ty==='s'||m.aprendido))apr.push(d.t);(d.tm||[]).forEach(([k,l])=>{const t=m.tiempos&&m.tiempos[k];if(t&&t.best!=null)tms.push([l,t.best])})});
+ if(typeof skList==='function')skList().forEach(f=>{if(skVigente(f.k))apr.push('Habilidad: '+f.t)});
+ return{nivel:S.lv,fin:!!D.fin,rango:D.fin?'Nivel máximo':RANGOS[S.ri],xp:S.A,total:S.T,bloquean:S.block.map(k=>ATRN[k]).concat((S.req||[]).map(k=>fichaDef(k).t)),aprendido:apr,tiempos:tms,simulacros:(D.drills||[]).filter(d=>d.sorpresa).map(d=>[d.fecha,d.s]),medallas:medallas(S)}}
+/* Campos de las fichas de persona por categoría (para elegir qué se comparte) */
+const P_SALUD=['med','medFrio','aparato','alergias','cronica','movil','sentidos','limit','impres','intol'],P_CUERPO=['sexo','edadN','peso','altura','embarazo'],P_CONTACTO=['contacto'],H_CONTACTO=['contactoExt'];
+const SEL_DEF=()=>({hogar:true,contactos:false,personas:Object.fromEntries((D.personas||[]).filter(isMine).map(p=>[p.id,true])),salud:false,cuerpo:false,registro:true,ubic:false,mascotas:true,plan:true});
+function unidadPayload(sel){sel=sel||SEL_DEF();const omit={},parts=[];
+ const P={t:'planb-unidad',v:6,av:APPV,avn:APPV_N,unidad:{id:D.unidad.id,nombre:D.unidad.nombre||''},dev:D.dev,alias:D.cfg.alias||'',yo:D.yo||null,at:new Date().toISOString()};
+ const strip=(arr,fs)=>arr.map(r=>{const o=Object.assign({},r);if(!o._del)fs.forEach(f=>delete o[f]);return o});
+ if(sel.hogar){const ho=sel.contactos?[]:H_CONTACTO;P.hogar=strip(collLocal('hogar'),ho);P.vehiculos=collLocal('vehiculos');omit.hogar=ho;parts.push('hogar','vehiculos')}
+ if(sel.plan){P.plan=collLocal('plan');P.par=collLocal('par');parts.push('plan','par')}
+ if(sel.registro){const fs=sel.ubic?[]:['ubicacion'];P.registro=strip(collLocal('registro'),fs).map(r=>{delete r.mision;return r});omit.registro=fs;parts.push('registro')}
+ if(sel.mascotas){P.mascotas=collLocal('mascotas');parts.push('mascotas')}
+ /* Personas: solo las fichas de las que eres dueño; los datos personales de otra persona solo los comparte su dueño */
+ const pf=[...(sel.salud?[]:P_SALUD),...(sel.cuerpo?[]:P_CUERPO),...(sel.contactos?[]:P_CONTACTO)];
+ const chosen=(D.personas||[]).filter(p=>isMine(p)&&sel.personas&&sel.personas[p.id]);
+ if(chosen.length||(D.tomb.personas||[]).length){P.personas=[...strip(chosen,pf).map(p=>{if(!sel.plan)delete p.plan;return p}),...(D.tomb.personas||[])];omit.personas=sel.plan?pf:[...pf,'plan'];parts.push('personas')}
+ P.omit=omit;P.parts=parts;P.personal=myPersonal();P.card=myCard();P.miembros=Object.values(D.unidad.miembros||{});return P}
 /* Aplica lo recibido de otro miembro. Devuelve el número de conflictos. */
 function applyUnidad(P){const them=P.dev,me=D.dev;if(!them||them===me)return{err:'Es tu propio archivo.'};
  const peer=D.sync.peers[them]||{},base=peer.at||0,conf=[];
- ['hogar','plan',...SYNC_COLLS].forEach(name=>{const R=(P[name]||[]).map(r=>Object.assign({},r));
+ const parts=P.parts||['hogar','plan',...SYNC_COLLS],omit=P.omit||{};
+ ['hogar','plan',...SYNC_COLLS].forEach(name=>{if(!parts.includes(name)||!Array.isArray(P[name]))return; /* no enviado: no se toca */
+  const R=(P[name]||[]).map(r=>Object.assign({},r));
+  /* campos no enviados: se conserva lo que ya hay en este móvil */
+  const om=omit[name]||[];if(om.length){const lm=new Map(collLocal(name).map(r=>[r.id,r]));R.forEach(r=>{const l=lm.get(r.id);if(r._del)return;om.forEach(f=>{if(l&&!l._del&&l[f]!==undefined)r[f]=l[f];else delete r[f]})})}
   if(name==='registro')R.forEach(r=>{delete r.mision});
   const res=mergeColl(collLocal(name),R,base,name==='personas'?ownerRule(me,them):null);
   if(name==='registro')res.out.forEach(r=>{if(r.misionKey){const m=D.misiones.find(q=>q.key===r.misionKey);r.mision=m?m.id:''}});
@@ -53,7 +72,7 @@ function applyUnidad(P){const them=P.dev,me=D.dev;if(!them||them===me)return{err
  const put=m=>{if(!m||!m.dev||m.dev===me)return;const o=D.unidad.miembros[m.dev];if(!o||(o.at||'')<=(m.at||''))D.unidad.miembros[m.dev]=m};
  put({dev:them,alias:P.alias,yo:P.yo,personal:P.personal,card:P.card,at:P.at});(P.miembros||[]).forEach(put);
  D.sync.conf=(D.sync.conf||[]).filter(c=>!conf.some(n=>n.coll===c.coll&&n.id===c.id)).concat(conf);
- D.sync.peers[them]={at:nowMs(),alias:P.alias};if(D.hogar&&D.personas.length)D.hogar.nper=D.personas.length;return{conf:conf.length}}
+ D.sync.peers[them]={at:nowMs(),alias:P.alias,av:P.av||null};if(D.hogar&&D.personas.length)D.hogar.nper=D.personas.length;if(D.hogar&&typeof D.hogar.nveh==='number')D.hogar.nveh=(D.vehiculos||[]).length;return{conf:conf.length}}
 function resolveConf(i,pick){const c=D.sync.conf[i];if(!c)return;const keep=Object.assign({},pick==='r'?c.r:c.l);touch(keep);
  const arr=collLocal(c.coll).filter(r=>r.id!==c.id);arr.push(keep);if(c.coll==='registro'&&keep.misionKey){const m=D.misiones.find(q=>q.key===keep.misionKey);keep.mision=m?m.id:''}
  setLocal(c.coll,arr);D.sync.conf.splice(i,1)}
