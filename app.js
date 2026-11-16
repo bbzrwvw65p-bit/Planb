@@ -1,205 +1,422 @@
-const CATS=['agua','comida','refugio y casa','energía','seguridad física','seguridad digital','respaldo analógico','protocolos familiares','salud y botiquín','comunicaciones','evacuación','habilidades'];
-const ESTADOS=['Deseo','Tengo','Hecho','Explicado','Aprendido'],UT=['Casa','Trabajo','Coche'],USO=['Reserva','Uso diario'];
-const COL={Deseo:'#7f93b3',Tengo:'#22e6ff',Hecho:'#5cffb0',Explicado:'#a78bfa',Aprendido:'#ffd166'};
-const F=[['recurso','Recurso'],['categoria','Categoría',CATS],['estado','Estado',ESTADOS],['cantidad','Cantidad'],['modelo','Modelo / capacidad'],['ubicacion','Ubicación exacta'],['ubtipo','Ubicación tipo',UT],['uso','Reservado o uso diario',USO],['carga','Estado / carga'],['sabe','¿Sabe usarlo?',['Sí','No']],['confirmado','Fecha de confirmación','date'],['caduca','Caducidad (si tiene)','date'],['revision','Siguiente revisión','date']];
-const RANKS=[[0,'Vulnerable'],[3,'Iniciado'],[8,'Operativo'],[15,'Autónomo'],[25,'Resiliente']];
-const LS=localStorage;if(!LS.getItem('planb')&&LS.getItem('ohara'))LS.setItem('planb',LS.getItem('ohara'));
-let D=JSON.parse(LS.getItem('planb')||'null'),tab={'#mision':'m','#niveles':'n','#registro':'r','#puntuacion':'p'}[location.hash]||'m',justDone=null,onb=null;
-const save=()=>localStorage.setItem('planb',JSON.stringify(D)),$=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>'&#'+c.charCodeAt(0)+';');
-const ymd=x=>x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'),today=()=>ymd(new Date()),plus6=d=>{const x=new Date(d);x.setMonth(x.getMonth()+6);return x.toISOString().slice(0,10)};
-const due=r=>r.revision&&r.revision<=today();
-const pts=r=>r.ubtipo==='Casa'&&(r.estado==='Hecho'||r.estado==='Aprendido'||(r.estado==='Tengo'&&r.confirmado&&!due(r)))?1:0;
-const buzz=()=>navigator.vibrate&&navigator.vibrate(12);
-function ask(html){return new Promise(ok=>{const d=$('#dlg');$('#dlgb').innerHTML=html;d.showModal();$('#dy').onclick=()=>{buzz();d.close();ok(true)};$('#dn').onclick=()=>{d.close();ok(false)}})}
-const rowHtml=r=>'<div class="grid">'+F.map(([k,l])=>`<div><span>${l}</span>${esc(r[k])||'—'}</div>`).join('')+'</div>';
-const pct=v=>{const m=String(v||'').match(/(\d{1,3})\s*%/);if(m)return Math.min(100,+m[1]);if(/nuev|llen|complet|carg/i.test(v||''))return 100;return null};
-const V={
-m(){const m=active()||D.misiones[D.misiones.length-1];if(!m)return '';const d=defOf(m)||{},ex=d.ty==='x';
-const due=dueRows(),reps=(D.repasos||[]).filter(r=>!r.resuelto);
-let h='';
-if(due.length)h+=`<div class="glass revs"><div class="k" style="color:#ffd166">Revisiones pendientes · ${due.length}</div>${due.map(([r,i])=>`<div class="rv"><div><b>${esc(r.recurso)}</b><span>${r.revision<today()?'Vencida el ':'Hoy · '}${esc(r.revision)} · ${esc(r.ubicacion)||'—'}</span></div><button class="ghost" onclick="revisado(${i})">Revisado hoy</button></div>`).join('')}</div>`;
-h+=reps.map(r=>`<div class="glass rep"><div class="k" style="color:var(--vi)">Repaso</div><h3>${esc(r.titulo)}</h3><p>${esc(r.texto)}</p><div class="row"><button class="ghost" onclick="edit(null,${r.mid})">Actualizar registro</button><button class="ghost" onclick="ajustado(${r.id})">Ya está ajustado</button></div></div>`).join('');
-const ev=linked(m.id).length;
-return h+`<article class="glass proto"><i class="br a"></i><i class="br b"></i><i class="br c"></i><i class="br d"></i>${justDone===m.id?'<div class="scan"></div>':''}
-<div class="phead"><div class="k">${m.hecha?(D.fin?'Sistema completo':'Protocolo cerrado'):ex?'Examen del nivel':'Protocolo activo'}</div><div class="lvl">NIVEL ${m.lvl}</div></div>
-<div class="big"><span>${ex?'EX':'P-'}</span>${ex?'':String(m.num).padStart(2,'0')}</div><h2 class="ptitle">${esc(m.t.toUpperCase())}</h2>
-<div class="chips"><span class="chip"><i></i>${m.semana}</span><span class="chip v"><i></i>${esc(hogar(D.perfil))}</span><span class="chip g"><i></i>${m.hecha?'Completada':'En curso'}</span>${D.perfil&&D.perfil.region?`<span class="chip"><i></i>${esc(D.perfil.region)}</span>`:''}</div>
-<div class="sect"><div class="k">Por qué</div><p>${esc(m.porque)}</p></div><div class="sect"><div class="k">Objetivo</div><p>${esc(m.objetivo)}</p></div>
-<div class="sect"><div class="k">Prueba</div><p class="note" style="margin:4px 0 0">${d.ty==='i'?(ev?`${ev} fila${ev>1?'s':''} del registro vinculada${ev>1?'s':''}.`:'Necesita una fila en el registro vinculada a esta misión.'):'Saber hacer: confirmarás «lo he hecho yo» (Aprendido).'}</p>${!m.hecha&&d.ty==='i'?`<button class="ghost" style="margin-top:8px;width:100%" onclick="edit(null,${m.id})">+ Añadir prueba al registro</button>`:''}</div>
-${d.src?`<p class="note" style="margin-top:10px">Fuente: ${d.src.join(' · ')}</p>`:''}
-${m.hecha?`<div class="sync ${justDone===m.id?'go':''}">${D.fin?'NIVEL 4 SUPERADO':'PROTOCOLO COMPLETADO'}</div>`:`<button class="btn" onclick="done(${m.id})">${ex?'Examen superado':'Marcar misión completada'}</button>`}</article>
-<p class="note" style="text-align:center">Solo cuenta lo demostrado.</p><div class="glass sys"><div class="k">Sistema</div><p style="margin:6px 0 0"><b>PLAN B.</b> Sin IA. Sin nube. Sin cuentas. Tus datos no salen de este dispositivo.</p><div class="row" style="margin-top:12px"><button class="ghost" onclick="startOnb(true)">Editar perfil</button><button class="ghost" onclick="wipe()">Reiniciar todo</button></div></div>`},
-n(){return `<div class="k" style="margin:0 0 14px 4px">Secuencia de niveles</div><div class="orbit">`+NIV.map((L,i)=>{const lv=i+1,closed=lv<D.nivel||(D.fin&&lv===4),on=lv===D.nivel&&!closed,tot=curFor(lv,D.perfil).length,dn=D.misiones.filter(m=>m.lvl===lv&&m.hecha).length;
-return `<div class="node ${on||closed?'on':'lock'}"><div class="dot">${on||closed?String(lv).padStart(2,'0'):'<svg width="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>'}</div><div class="glass box"><div class="k">Nivel ${lv} · ${closed?'<span style="color:var(--grn)">Superado</span>':on?'<span style="color:var(--cy)">Activo</span>':'Bloqueado'}</div><h3>${L.t}</h3><div class="note" style="margin:4px 0 0">${L.o}</div>${on||closed?`<div class="bar"><i style="width:${Math.max(4,Math.round(dn/tot*100))}%"></i></div><div class="note" style="margin:6px 0 0">${dn} de ${tot} misiones${closed?' · examen superado':''}</div>`:'<div class="note" style="margin:6px 0 0">Sus misiones se abren al superar el examen del nivel anterior.</div>'}</div></div>`}).join('')+'</div>'},
-
-r(){return `<div class="row"><button class="btn" style="margin:0 0 8px" onclick="edit()">+ Añadir fila</button></div><div class="row" style="margin-bottom:14px"><button class="ghost" onclick="exp()">Exportar JSON</button><button class="ghost" onclick="$('#imp').click()">Importar JSON</button></div><input type="file" id="imp" accept=".json" hidden onchange="imp(this)">`+
-(D.registro.length?'':`<div class="glass empty"><svg viewBox="0 0 64 64" fill="none" stroke="#22e6ff" stroke-width="2"><path d="M32 4l24 14v28L32 60 8 46V18z"/><path d="M24 32h16" stroke-dasharray="3 3"/></svg><h3>SIN MÓDULOS DETECTADOS</h3><p>Registro vacío. Añade lo que puedas demostrar.</p></div>`)+
-D.registro.map((r,i)=>{const p=pct(r.carga),bc=p==null?'':p>60?'#5cffb0':p>25?'#ffd166':'#ff4d6d';return `<div class="glass mod ${due(r)?'due':''}" style="--sc:${COL[r.estado]||'#777'}"><h3><span>${esc(r.recurso)}</span><span class="led">${esc(r.estado)}</span></h3><div class="k" style="margin-top:5px">${esc(r.categoria)} · ${esc(r.ubtipo)} · ${esc(r.uso)}</div>${due(r)?'<span class="alert">⚠ REVISIÓN VENCIDA</span>':''}
-${p!=null?`<div class="batt"><b style="--bc:${bc}"><i style="width:${p}%"></i></b>${p}%</div>`:''}
-<div class="grid"><div><span>Cantidad</span>${esc(r.cantidad)||'—'}</div><div><span>Modelo</span>${esc(r.modelo)||'—'}</div><div><span>Ubicación</span>${esc(r.ubicacion)||'—'}</div><div><span>Carga</span>${esc(r.carga)||'—'}</div><div><span>¿Sabe usarlo?</span>${esc(r.sabe)}</div><div><span>Revisión</span>${esc(r.revision)||'—'}</div></div>
-<div class="row" style="margin-top:8px"><button class="ghost" onclick="edit(${i})">Editar</button><button class="ghost" onclick="del(${i})">Borrar</button></div></div>`}).join('')},
-p(){const c=D.registro.filter(pts).length;let ri=0;RANKS.forEach((r,i)=>{if(c>=r[0])ri=i});const nx=RANKS[ri+1],f=nx?(c-RANKS[ri][0])/(nx[0]-RANKS[ri][0]):1,L=2*Math.PI*96;
-return `<div class="glass gauge"><div class="k">Nivel de resiliencia · Casa</div><div class="ring"><svg viewBox="0 0 220 220"><circle cx="110" cy="110" r="96" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="14"/><circle cx="110" cy="110" r="80" fill="none" stroke="rgba(34,230,255,.15)" stroke-width="1" stroke-dasharray="2 6"/><circle cx="110" cy="110" r="96" fill="none" stroke="url(#g)" stroke-width="14" stroke-linecap="round" stroke-dasharray="${L}" stroke-dashoffset="${L*(1-Math.max(.02,f))}" style="filter:drop-shadow(0 0 6px #22e6ff);transition:stroke-dashoffset 1s"/><defs><linearGradient id="g"><stop offset="0" stop-color="#a78bfa"/><stop offset="1" stop-color="#22e6ff"/></linearGradient></defs></svg><div class="n"><b>${c}</b><span>PUNTOS</span></div></div><div class="tier">${RANKS[ri][1].toUpperCase()}</div><div class="note" style="margin-top:6px">${nx?`${nx[0]-c} para ${nx[1]}`:'Nivel máximo'} · ${D.registro.length} en el registro</div></div>
-<div class="tiers">${RANKS.map((r,i)=>`<div class="glass ${i===ri?'cur':''}"><span>${r[1]}</span><span>${r[0]}+</span></div>`).join('')}</div>
-<p class="note">Puntúa: <b>Tengo</b> con confirmación vigente, <b>Hecho</b> y <b>Aprendido</b>, solo en Casa. <b>Explicado</b> no puntúa.</p>`}};
-function render(){if(onb)return renderOnb();document.body.classList.remove('onb');$('#sub').innerHTML=`<b>Nivel ${D.nivel}</b> · ${NIV[D.nivel-1].t}${(()=>{const n=dueRows().length;return n?` · <span style="color:#ffd166">${n} revisión${n>1?'es':''}</span>`:''})()}`;const v=$('#v');v.className='';v.innerHTML=V[tab]();void v.offsetWidth;v.className='anim';document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab))}
-document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{buzz();tab=b.dataset.t;window.scrollTo(0,0);render()});
-function edit(i,mid){const md=mid!=null?D.misiones.find(m=>m.id===mid):null,dd=md&&defOf(md);const r=i==null?{categoria:dd?dd.cat:CATS[0],estado:'Tengo',ubtipo:'Casa',uso:'Reserva',sabe:'Sí',confirmado:today(),mision:mid??((active()||{}).id)}:D.registro[i];
-$('#v').innerHTML='<div class="glass form"><div class="k">Registro</div><h2 class="ptitle" style="font-size:20px">'+(i==null?'NUEVA FILA':'EDITAR FILA')+'</h2>'+`<label>Misión vinculada</label><select id="f_mision"><option value="">— Ninguna —</option>${D.misiones.map(m=>`<option value="${m.id}" ${+r.mision===m.id?'selected':''}>N${m.lvl} · ${esc(m.titulo)}</option>`).join('')}</select>`+F.map(([k,l,o])=>`<label>${l}</label>`+(Array.isArray(o)?`<select id="f_${k}">${o.map(x=>`<option ${r[k]===x?'selected':''}>${x}</option>`).join('')}</select>`:`<input id="f_${k}" type="${o==='date'?'date':'text'}" value="${esc(r[k])}">`)).join('')+
-`<p class="note">Tengo exige cantidad, ubicación exacta y fecha de confirmación. Si dejas la revisión vacía se calcula sola: 6 meses (pilas, agua, comida), 12 meses documentos, medicación por su caducidad.</p><div class="row" style="margin-top:18px"><button class="ghost" onclick="render()">Cancelar</button><button class="btn" style="margin:0" onclick="sv(${i??'null'})">Guardar</button></div></div>`;window.scrollTo(0,0)}
-async function sv(i){const r={};F.forEach(([k])=>r[k]=$('#f_'+k).value.trim());r.mision=$('#f_mision').value?+$('#f_mision').value:'';if(!r.recurso)return alert('Falta el recurso.');
-if(r.estado==='Tengo'&&(!r.cantidad||!r.ubicacion||!r.confirmado))return alert('Para «Tengo» hacen falta cantidad, ubicación exacta y fecha de confirmación.');
-if(!r.revision)r.revision=revDefault(r);
-if(await ask(`<h2>${i==null?'¿Añado esta fila?':'¿Guardo este cambio?'} Sí o no</h2>${rowHtml(r)}`)){i==null?D.registro.push(r):D.registro[i]=r;if(r.mision)(D.repasos||[]).forEach(x=>{if(!x.resuelto&&x.mid===r.mision)x.resuelto=today()});save();render()}}
-async function del(i){if(await ask(`<h2>¿Borro esta fila? Sí o no</h2>${rowHtml(D.registro[i])}`)){D.registro.splice(i,1);save();render()}}
-function exp(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(D,null,2)],{type:'application/json'}));a.download='planb-backup-'+today()+'.json';a.click()}
-function imp(el){const f=el.files[0];if(!f)return;f.text().then(async t=>{try{const x=JSON.parse(t);if(!x.registro||!x.misiones)throw 0;if(await ask('<h2>¿Sustituyo todos los datos por la copia? Sí o no</h2>')){D=x;migrate();save();boot()}}catch(e){alert('Archivo no válido.')}})}
-const has=(a,v)=>Array.isArray(a)&&a.includes(v);
-function hogar(p){if(!p)return '';const a=+p.adultos||0,m=+p.menores||0,x=[`${a} adulto${a===1?'':'s'}`];if(m)x.push(`${m} menor${m===1?'':'es'}`);if(p.dependientes==='Sí')x.push('dependientes');if(p.mascotas==='Sí')x.push('mascotas');return x.join(' · ')}
-const Q=[
-{t:'¿Cuántas personas viven en casa?',h:'Cuenta solo quienes duermen aquí habitualmente.',p:[{k:'adultos',ty:'num',l:'Adultos',min:1},{k:'menores',ty:'num',l:'Menores',min:0}]},
-{t:'¿Hay personas mayores o dependientes?',p:[{k:'dependientes',ty:'one',l:'Mayores o dependientes',o:['Sí','No']},{k:'movilidad',ty:'one',l:'¿Alguien con movilidad reducida?',o:['Sí','No']}]},
-{t:'¿Tenéis mascotas?',p:[{k:'mascotas',ty:'one',o:['Sí','No']},{k:'mascotasTipo',ty:'text',l:'¿De qué tipo?',ph:'Perro, gato…',c:p=>p.mascotas==='Sí'}]},
-{t:'Necesidades de dieta',h:'Puedes marcar varias.',p:[{k:'dieta',ty:'multi',o:['Ninguna','Vegetariana','Vegana','Celíaca','Alergias','Otra'],ex:'Ninguna'},{k:'dietaOtro',ty:'text',l:'Especifica',c:p=>has(p.dieta,'Otra')||has(p.dieta,'Alergias')}]},
-{t:'¿Medicación crítica o necesidades médicas?',h:'Esta información se queda solo en este dispositivo.',p:[{k:'medicacion',ty:'one',o:['Sí','No']},{k:'medicacionNota',ty:'text',l:'Nota (opcional)',ph:'Ej.: insulina, que necesita frío',c:p=>p.medicacion==='Sí'}]},
-{t:'¿Dónde vives?',p:[{k:'region',ty:'text',l:'Zona o región',ph:'Ej.: Canarias'},{k:'entorno',ty:'one',l:'Entorno',o:['Ciudad','Pueblo','Rural o aislado','Isla']}]},
-{t:'¿Qué hay cerca de tu casa?',h:'Marca lo que aplique.',p:[{k:'cerca',ty:'multi',o:['Costa (primera línea)','Zona baja o junto a barranco/río','Ladera o monte','Bosque o vegetación seca','Industria química o puerto','Nada de esto'],ex:'Nada de esto'}]},
-{t:'Tu vivienda',p:[{k:'vivienda',ty:'one',l:'Tipo',o:['Piso','Casa','Otra']},{k:'planta',ty:'one',l:'Planta',o:['Bajo','Intermedia','Alta']},{k:'ascensor',ty:'one',l:'¿Ascensor?',o:['Sí','No']}]},
-{t:'Extras de la vivienda',h:'Marca lo que tengas.',p:[{k:'extras',ty:'multi',o:['Sótano o garaje','Depósito o aljibe de agua propio','Ninguno'],ex:'Ninguno'}]},
-{t:'Suministros',p:[{k:'cocina',ty:'one',l:'Cocina',o:['Gas butano/natural','Vitro/inducción']},{k:'agua',ty:'one',l:'Agua',o:['De red','Pozo/aljibe']}]},
-{t:'¿Tenéis vehículo?',p:[{k:'vehiculo',ty:'one',o:['No','Gasolina/diésel','Eléctrico']}]},
-{t:'¿A qué distancia tienes…?',p:[{k:'distSuper',ty:'one',l:'Supermercado',o:['A pie','En coche','Lejos']},{k:'distSalud',ty:'one',l:'Centro de salud',o:['A pie','En coche','Lejos']}]},
-{t:'Clima predominante',p:[{k:'clima',ty:'one',o:['Calor','Frío','Templado']}]},
-{t:'Riesgos principales de tu zona',h:'Puedes marcar varios.',p:[{k:'riesgos',ty:'multi',o:['Apagones','Incendios forestales','Inundaciones/DANA','Terremotos','Volcánico','Olas de calor','Temporales','Otros']},{k:'riesgosOtro',ty:'text',l:'¿Cuáles?',c:p=>has(p.riesgos,'Otros')}]}];
-const SUMK=[['Hogar',p=>hogar(p)],['Mayores/dependientes',p=>p.dependientes],['Movilidad reducida',p=>p.movilidad],['Mascotas',p=>p.mascotas==='Sí'?(p.mascotasTipo||'Sí'):'No'],['Dieta',p=>[...(p.dieta||[]),p.dietaOtro].filter(Boolean).join(', ')],['Medicación crítica',p=>p.medicacion==='Sí'?('Sí'+(p.medicacionNota?' · '+p.medicacionNota:'')):p.medicacion],['Zona',p=>[p.region,p.entorno].filter(Boolean).join(' · ')],['Cerca',p=>(p.cerca||[]).join(', ')],['Vivienda',p=>[p.vivienda,p.planta&&'planta '+p.planta.toLowerCase(),p.ascensor==='Sí'?'con ascensor':p.ascensor==='No'?'sin ascensor':''].filter(Boolean).join(' · ')],['Extras',p=>(p.extras||[]).join(', ')],['Cocina / agua',p=>[p.cocina,p.agua].filter(Boolean).join(' · ')],['Vehículo',p=>p.vehiculo],['Supermercado / salud',p=>[p.distSuper,p.distSalud].filter(Boolean).join(' · ')],['Clima',p=>p.clima],['Riesgos',p=>[...(p.riesgos||[]),p.riesgosOtro].filter(Boolean).join(', ')]];
-function startOnb(edit){onb={i:0,edit:!!edit,p:structuredClone((D&&D.perfil)||{adultos:1,menores:0})};window.scrollTo(0,0);render()}
-function renderOnb(){document.body.classList.add('onb');const N=Q.length,i=onb.i,p=onb.p;$('#sub').innerHTML=onb.edit?'<b>Editar perfil</b>':'<b>Configuración inicial</b>';
-const prog=`<div class="prog"><div class="k">${i<N?`Pregunta ${i+1} de ${N}`:'Resumen'}</div><div class="bar"><i style="width:${Math.round(Math.min(i,N)/N*100)}%"></i></div></div>`;let body;
-if(i<N){const q=Q[i];body=`<h2 class="ptitle" style="font-size:21px">${q.t}</h2>${q.h?`<p class="note" style="margin-top:4px">${q.h}</p>`:''}`+q.p.map((x,pi)=>{if(x.c&&!x.c(p))return '';const L=x.l?`<label>${x.l}</label>`:'';
- if(x.ty==='num')return L+`<div class="step"><button class="ghost" onclick="onbNum(${pi},-1)">−</button><b>${p[x.k]??x.min}</b><button class="ghost" onclick="onbNum(${pi},1)">+</button></div>`;
- if(x.ty==='text')return L+`<input type="text" placeholder="${esc(x.ph||'')}" value="${esc(p[x.k]||'')}" oninput="onb.p['${x.k}']=this.value">`;
- const sel=v=>x.ty==='multi'?has(p[x.k],v):p[x.k]===v;return L+`<div class="opts">${x.o.map((v,oi)=>`<button class="opt ${sel(v)?'on':''}" onclick="onbPick(${pi},${oi})">${x.ty==='multi'?'<i class="cb"></i>':''}${v}</button>`).join('')}</div>`}).join('')}
-else body=`<h2 class="ptitle" style="font-size:21px">TU PERFIL</h2><p class="note" style="margin-top:4px">Revísalo. Se guarda solo en este dispositivo.</p><div class="grid sum">${SUMK.map(([l,f])=>`<div><span>${l}</span>${esc(f(p))||'—'}</div>`).join('')}</div>`;
-$('#v').innerHTML=`<div class="glass form onbx">${prog}${body}<div class="row" style="margin-top:20px">${i>0?'<button class="ghost" onclick="onbGo(-1)">Atrás</button>':onb.edit?'<button class="ghost" onclick="onb=null;render()">Cancelar</button>':''}<button class="btn" style="margin:0" onclick="${i<N?'onbGo(1)':'onbEnd()'}">${i<N?'Siguiente':onb.edit?'Guardar perfil':'Empezar'}</button></div></div>`}
-function onbNum(pi,d){const x=Q[onb.i].p[pi];onb.p[x.k]=Math.max(x.min,Math.min(20,(+onb.p[x.k]||x.min)+d));buzz();render()}
-function onbPick(pi,oi){const x=Q[onb.i].p[pi],v=x.o[oi],p=onb.p;buzz();if(x.ty==='one')p[x.k]=v;else{let a=p[x.k]||[];a=a.includes(v)?a.filter(y=>y!==v):[...a,v];if(x.ex)a=v===x.ex?a.filter(y=>y===x.ex):a.filter(y=>y!==x.ex);p[x.k]=a}render()}
-function onbGo(d){onb.i=Math.max(0,onb.i+d);window.scrollTo(0,0);render()}
-function onbEnd(){buzz();const p=onb.p,old=D&&D.perfil;onb=null;if(!D)D={nivel:1,misiones:[],registro:[],repasos:[],ver:3};D.perfil=p;migrate();
- if(old)diffPerfil(old,p);if(!D.misiones.length)addMision(1,curFor(1,p)[0]);else unlockNext();save();tab='m';render()}
-async function wipe(){if(await ask('<h2>¿Reiniciar todo?</h2><p>Se borrarán perfil, misiones y registro de este dispositivo. Exporta antes una copia si la quieres. ¿Seguro?</p>')){LS.removeItem('planb');LS.removeItem('ohara');D=null;startOnb(false)}}
-function boot(){migrate();if(D)save();if(!D||!D.perfil)startOnb(false);else render()}
-/* ===== Currículo por niveles. Fuentes: Protección Civil (DGPCE), Cruz Roja, UE Preparedness Union Strategy (72 h), FEMA/Ready.gov, OMS, Ministerio de Sanidad ===== */
-const S={PC:'Protección Civil (DGPCE)',CR:'Cruz Roja',UE:'UE · Preparedness Union Strategy (72 h)',FE:'FEMA / Ready.gov',OMS:'OMS · agua de consumo',SAN:'Ministerio de Sanidad',AE:'AEMET',MI:'Ministerio de Industria (EA)'};
-const c=(b,s)=>b?s:'';
-function X(p){p=p||{};const n=Math.max(1,(+p.adultos||0)+(+p.menores||0)),reg=p.region||'';return{n,L:p.clima==='Calor'?4:3,pets:p.mascotas==='Sí',pt:(p.mascotasTipo||'mascotas').toLowerCase(),kids:+p.menores>0,deps:p.dependientes==='Sí',mov:p.movilidad==='Sí',med:p.medicacion==='Sí',mn:p.medicacionNota,
-isla:p.entorno==='Isla'||/canari|balear|isla/i.test(reg),can:/canari/i.test(reg),rural:p.entorno==='Rural o aislado',alto:p.planta==='Alta',asc:p.ascensor==='Sí',piso:p.vivienda==='Piso',elec:p.cocina==='Vitro/inducción',alj:p.agua==='Pozo/aljibe'||has(p.extras,'Depósito o aljibe de agua propio'),garaje:has(p.extras,'Sótano o garaje'),
-calor:p.clima==='Calor',frio:p.clima==='Frío',costa:has(p.cerca,'Costa (primera línea)')||has(p.riesgos,'Temporales'),inund:has(p.cerca,'Zona baja o junto a barranco/río')||has(p.riesgos,'Inundaciones/DANA'),fuego:has(p.cerca,'Bosque o vegetación seca')||has(p.riesgos,'Incendios forestales'),ind:has(p.cerca,'Industria química o puerto'),
-volc:has(p.riesgos,'Volcánico')||/canari/i.test(reg),sism:has(p.riesgos,'Terremotos'),veg:has(p.dieta,'Vegana')?'vegana':has(p.dieta,'Vegetariana')?'vegetariana':null,cel:has(p.dieta,'Celíaca'),alg:has(p.dieta,'Alergias'),dOtro:p.dietaOtro,veh:p.vehiculo,lejos:p.distSuper==='Lejos'||p.entorno==='Isla'||p.entorno==='Rural o aislado',saludLejos:p.distSalud==='Lejos',hog:hogar(p)}}
-const dietTxt=x=>c(x.veg,` Dieta ${x.veg}: prioriza proteína vegetal (legumbres en bote, frutos secos, crema de cacahuete${x.veg==='vegetariana'?', quesos curados':''}).`)+c(x.cel,' Todo sin gluten.')+c(x.alg,' Respeta las alergias'+(x.dOtro?' ('+x.dOtro+')':'')+'.');
-/* ty: i = necesita fila en el registro · s = saber hacer («lo he hecho yo» → Aprendido) · x = examen del nivel */
-const M=(k,t,ty,cat,src,w,o,sk)=>({k,t,ty,cat,src,w,o,sk});
-const NIV=[{t:'24 horas sin luz en casa',o:'Aguantar un apagón de un día en casa con calma.'},{t:'2 semanas sin supermercado',o:'Vivir 14 días sin comprar ni depender de la red.'},{t:'3 meses',o:'Una despensa rotativa y salud, dinero y casa preparados para una crisis larga.'},{t:'Largo plazo',o:'Resiliencia: habilidades, autosuficiencia parcial y comunidad.'}];
-const CUR={1:[
-M('luz','Luz','i','energía',[S.PC,S.UE],(p,x)=>'Si se va la corriente de noche, lo primero que pierdes es moverte por casa con seguridad. El móvil no cuenta: su batería es para comunicarte.'+c(x.mov,' Con alguien de movilidad reducida, una buena luz junto a su cama evita caídas.'),()=>'Localiza cada linterna o frontal de casa, enciéndela y comprueba que funciona. Anota modelo, pilas o carga, ubicación exacta y si es de reserva o de uso diario.'),
-M('cuadro','Cuadro eléctrico y llave de paso','s','refugio y casa',[S.PC,S.FE],(p,x)=>'Saber cortar la luz o el agua en segundos evita daños en una fuga, un cortocircuito o al volver la corriente.'+c(x.piso,' En un piso, la llave de paso puede estar en la cocina, el baño o el rellano.'),()=>'Encuentra el cuadro eléctrico y la llave de paso del agua. Baja y sube el interruptor general y cierra y abre la llave tú mismo. Pega una etiqueta con lo que hace cada uno.'),
-M('agua','Agua para 24 horas','i','agua',[S.PC,S.OMS],(p,x)=>`Se recomiendan unos ${x.L} litros por persona y día${c(x.calor,', algo más que los 3 habituales por el calor')}. Para vosotros son ${x.n*x.L} litros para 24 horas${c(x.pets,', más el agua de '+x.pt)}.`+c(x.alj,' Tu depósito, aljibe o pozo suele depender de una bomba eléctrica: sin luz, puede que no salga agua del grifo.')+c(x.alto,x.asc?' En planta alta sin luz no hay ascensor: subir agua por la escalera pesa.':' En planta alta, cada litro se sube a mano.'),(p,x)=>`Reúne ${x.n*x.L} litros de agua embotellada en un sitio fresco y oscuro${c(x.alto,', en garrafas de 5 L que puedas cargar')}. Anota cantidad, ubicación y caducidad.`),
-M('comida','Comida que no necesita cocinar','i','comida',[S.PC,S.UE],(p,x)=>(x.elec?'Tu cocina es eléctrica: si se va la luz, no puedes cocinar nada. Por eso esta misión es solo comida que se come tal cual.':'Aunque tengas gas, en una emergencia lo más fiable es comida que no necesita fuego.')+dietTxt(x)+c(x.kids,' Incluye algo que a los menores les guste comer.')+c(x.pets,` Y un día de comida para ${x.pt}.`),(p,x)=>`Junta comida para un día para ${x.hog} que se pueda comer sin cocinar ni nevera, y un abrelatas manual. Anota qué es, dónde está y su caducidad.`),
-M('nevera','Nevera y congelador en un corte','s','comida',[S.FE,S.SAN],(p,x)=>'La nevera mantiene el frío unas 4 horas cerrada; un congelador lleno, unas 48 h (24 h si está a medias). Abrir la puerta es lo que más lo estropea.'+c(x.med&&/insulin|frío|nevera/i.test(x.mn||''),' Tu medicación que necesita frío va la primera en el plan.'),()=>'Decide con tu hogar la regla: en un corte, nevera y congelador no se abren. Apunta en un papel pegado a la nevera qué se come primero y cuándo tirar algo (más de 4 h a más de 5 °C). Que lo sepas explicar tú.'),
-M('movil','Energía para el móvil','i','energía',[S.UE,S.FE],(p,x)=>'El móvil es tu enlace con familia y avisos. Una batería externa cargada te da varios días de margen.'+(x.veh==='Eléctrico'?' No cuentes con el coche eléctrico como fuente de reserva: no está pensado para eso y puede no tener carga.':x.veh==='Gasolina/diésel'?' El cargador de coche es un buen plan secundario, si hay combustible.':''),()=>'Carga al 100 % una batería externa y comprueba que carga tu móvil con su cable. Anota capacidad, ubicación y fecha de carga.'),
-M('radio','Información: radio','i','comunicaciones',[S.PC,S.UE],(p,x)=>'Si caen la luz y las redes, la radio sigue emitiendo los avisos oficiales.'+c(x.rural||x.isla,' En tu entorno puede ser tu única fuente fiable durante horas.'),()=>'Consigue o localiza una radio a pilas o de dinamo, sintoniza una emisora local y apunta su frecuencia en un papel junto a la radio.'),
-M('botiquin','Botiquín básico','i','salud y botiquín',[S.CR],(p,x)=>'Con un apagón suben los pequeños accidentes en casa, y la farmacia puede estar cerrada.'+c(x.saludLejos,' Tu centro de salud está lejos: razón de más.')+c(x.kids,' Incluye antitérmico infantil y termómetro.'),()=>'Revisa tu botiquín: tiritas, gasas, desinfectante, analgésico y termómetro. Anota dónde está y lo que caduca antes.'),
-M('medicacion','Medicación','i','salud y botiquín',[S.SAN,S.CR],(p,x)=>x.med?'Hay medicación crítica en casa: un corte o una farmacia cerrada no pueden dejarla sin dosis.'+(x.mn?' ('+x.mn+')':'')+' Piensa también qué pasa si necesita frío.':'Aunque no haya medicación crítica, conviene saber qué tomáis a diario y tener la receta a mano.'+c(x.deps,' Revisa especialmente la de las personas mayores o dependientes.'),(p,x)=>x.med?'Ten una reserva de varios días de la medicación crítica, con su caducidad, y una lista en papel con nombre, dosis y médico. Anótala en el registro.':'Haz una lista en papel de la medicación habitual del hogar (nombre y dosis) y comprueba que tenéis para unos días. Anótala en el registro.'),
-M('sanea','Saneamiento sin agua','i','refugio y casa',[S.FE,S.OMS],(p,x)=>'Sin agua corriente, el váter deja de funcionar en la primera descarga. Es un problema de salud, no de comodidad.'+c(x.alj,' Si tu agua depende de una bomba, te pasará en cuanto se vaya la luz.'),()=>'Guarda agua no potable para la cisterna (unos 5–10 L) o un kit de bolsas resistentes y bridas para el WC. Anota dónde está.'),
-M('termico','Confort térmico','i','refugio y casa',[S.PC,S.SAN,S.AE],(p,x)=>(x.calor?'Sin aire ni ventilador, el calor es el mayor riesgo para mayores, menores y enfermos.':x.frio?'Sin calefacción, la casa pierde temperatura rápido; el frío es peligroso, sobre todo de noche.':'Incluso en clima templado, una noche sin calefacción o un día de calor sin ventilador se nota.')+c(x.deps||x.kids,' En tu hogar hay personas más vulnerables a la temperatura.')+c(x.can,' En Canarias, con calima, mejor cerrar ventanas y tener mascarillas.'),(p,x)=>x.calor?'Prepara un plan fresco: ventilador a pilas o USB, ropa ligera y la habitación más fresca elegida. Anota qué tienes y dónde.':'Prepara mantas o sacos para cada persona y elige la habitación que mejor guarda el calor. Anota qué tienes y dónde.'),
-M('seguridad','Seguridad: fuego y CO','s','seguridad física',[S.PC,S.FE],(p,x)=>'En los apagones muchos sustos vienen de velas sin vigilar, braseros y hornillos o generadores dentro de casa: el monóxido de carbono no huele y mata.'+c(!x.elec,' Con cocina de gas, ventila siempre al usarla.'),()=>'Repasa con tu hogar las reglas: nada de velas sin vigilancia, ni braseros, ni hornillos o generadores dentro de casa. Comprueba dónde está tu extintor o detector de humo si lo tienes. Que sepas explicarlas tú.'),
-M('efectivo','Efectivo','i','respaldo analógico',[S.UE,S.FE],(p,x)=>'Sin luz no funcionan datáfonos ni cajeros.'+c(x.lejos,' En tu zona reabastecerse tarda más, así que el efectivo da margen.'),()=>'Guarda algo de efectivo en billetes pequeños y monedas en un sitio de casa que sepáis los adultos. Anota dónde está (no la cantidad, si prefieres).'),
-M('documentos','Documentos','i','respaldo analógico',[S.PC,S.UE],(p,x)=>'Si tienes que salir con prisa, demostrar quién eres o tu tarjeta sanitaria evita problemas.',()=>'Haz fotocopias de DNI, tarjeta sanitaria y póliza de seguro, y una lista de teléfonos clave en papel. Guárdalo todo en una funda estanca y anota dónde está.'),
-M('vecinos','Vecinos y red de apoyo','s','protocolos familiares',[S.CR,S.UE],(p,x)=>'En las primeras horas de una crisis la ayuda más cercana son tus vecinos.'+c(x.deps||x.mov,' Con alguien dependiente o con movilidad reducida, tener un vecino de confianza cambia mucho.')+c(x.rural,' En zona rural, el vecino más cercano puede estar lejos: acordadlo antes.'),()=>'Habla con al menos un vecino o persona cercana: intercambiad teléfonos y acordad avisaros en un apagón. Hazlo tú.'),
-M('plan','Plan del hogar','s','protocolos familiares',[S.PC,S.FE],(p,x)=>{const r=[];if(x.inund)r.push('inundación');if(x.costa)r.push('temporal');if(x.fuego)r.push('incendio');if(x.ind)r.push('accidente industrial (confinarse)');if(x.volc)r.push('erupción volcánica');return 'Si pasa algo y no hay cobertura, todos deben saber dónde reunirse y a quién llamar.'+c(r.length,' Por dónde vives, ten en cuenta: '+r.join(', ')+'. Elige un punto de encuentro alto y seguro.')+c(x.mov||x.deps,' Decide quién ayuda a la persona dependiente o con movilidad reducida y cómo bajar sin ascensor.')},()=>'Acordad un punto de encuentro cerca de casa y otro fuera del barrio, y escribid en papel tres teléfonos clave. Que cada adulto lo lleve encima.'),
-M('simulacro','Simulacro: tarde sin luz','x','habilidades',[S.PC,S.UE],(p,x)=>'Es el examen del nivel. Solo cuenta lo demostrado: vivir unas horas sin luz enseña más que cualquier lista.'+c(x.med&&/frío|insulin|nevera/i.test(x.mn||''),' Si guardas medicación en la nevera, no la abras: si el corte la pondría en riesgo, déjala fuera del simulacro (nevera portátil) antes de empezar.'),(p,x)=>'Una tarde, baja el interruptor general del cuadro durante 4 a 6 horas, con la nevera cerrada y sin abrirla. Observa: ¿encontraste la luz a oscuras?, ¿bebisteis y comisteis sin cocinar?, ¿funcionó la radio?, ¿qué echaste en falta? Al terminar, sube el general y anota lo que mejorarías.')],
-2:[
-M('agua14','Reserva de agua para 2 semanas','i','agua',[S.PC,S.OMS],(p,x)=>`Dos semanas son ${x.n*x.L*14} litros para ${x.hog}${c(x.pets,' más '+x.pt)}. Se puede llegar poco a poco.`+c(x.alto&&x.piso,' En un piso alto, mejor garrafas manejables repartidas.')+c(x.alj,' Tu aljibe es una gran reserva, pero sin luz necesitas sacarla sin bomba.'),(p,x)=>`Almacena al menos la mitad (${Math.round(x.n*x.L*7)} L) en garrafas cerradas, en un sitio fresco. Anota cantidad, ubicación y fecha.`),
-M('tratar','Potabilizar agua','s','agua',[S.SAN,S.OMS],()=>'Si se acaba el agua embotellada, tienes que poder hacer potable otra. Hervir, filtrar o desinfectar.',()=>'Aprende y prueba un método: lejía apta para agua de bebida (2 gotas por litro, 30 min de espera, según Sanidad), pastillas potabilizadoras o un filtro. Hazlo tú con un litro.'),
-M('despensa14','Despensa de 14 días','i','comida',[S.UE,S.PC],(p,x)=>'Dos semanas de comida que ya coméis, no comida rara que nadie toca.'+dietTxt(x)+c(x.isla,' En una isla el reabastecimiento llega en barco: un temporal o un problema en el puerto vacía estantes en días.'),(p,x)=>`Completa comida para 14 días para ${x.hog} con lo que coméis normalmente. Anota en el registro lo principal, cantidad, ubicación y caducidad.`),
-M('fifo','Rotación de la despensa','s','comida',[S.FE],()=>'Una despensa que no rota caduca. La regla es sencilla: lo primero que entra es lo primero que sale.',()=>'Ordena la despensa con lo más antiguo delante y marca las fechas grandes. Usa algo de ella esta semana y repón detrás.'),
-M('cocinar','Cocinar sin red','i','energía',[S.PC,S.FE],(p,x)=>(x.elec?'Tu cocina es eléctrica: sin red no hay comida caliente.':'Si falla el gas o la luz, necesitas otra forma de calentar.')+' Un hornillo de camping se usa solo en exterior o con mucha ventilación: el CO mata.'+c(x.piso,' En un piso, el balcón o junto a una ventana abierta, nunca en un cuarto cerrado.'),()=>'Ten un hornillo de camping con cartuchos de repuesto y pruébalo una vez en un lugar ventilado. Anota modelo, cartuchos y ubicación.'),
-M('energia2','Energía para varios días','i','energía',[S.UE],(p,x)=>'Más allá de la batería del móvil: luz, radio y carga durante días.'+c(x.calor||x.can,' Con mucho sol, un panel solar pequeño rinde bien.')+c(x.veh==='Eléctrico',' El coche eléctrico no es tu plan de energía.'),()=>'Consigue una estación de energía portátil o un panel solar pequeño con batería, y comprueba que carga tus aparatos. Anota capacidad y ubicación.'),
-M('higiene','Higiene y residuos','i','salud y botiquín',[S.FE,S.OMS],(p,x)=>'Dos semanas sin servicios normales: la higiene evita enfermedades.'+c(x.kids,' Incluye pañales o productos de los menores si los usan.'),()=>'Reúne gel hidroalcohólico, toallitas, bolsas de basura resistentes y productos de higiene para 14 días. Anota qué tienes y dónde.'),
-M('auxilios','Primeros auxilios básicos','s','salud y botiquín',[S.CR],(p,x)=>'Un botiquín sin saber usarlo es medio botiquín.'+c(x.saludLejos,' Con el centro de salud lejos, saber actuar es clave.'),()=>'Haz un curso básico de primeros auxilios (Cruz Roja u otra entidad acreditada) y practica una RCP y una cura. Solo cuenta si lo has hecho tú.'),
-M('botiquin2','Botiquín ampliado','i','salud y botiquín',[S.CR],(p,x)=>'Para dos semanas sin farmacia, el botiquín básico se queda corto.'+c(x.med,' Amplía también la reserva de medicación crítica.'),()=>'Añade vendas, suero oral, antiséptico, pinzas, guantes y un manual de primeros auxilios en papel. Anota lo que añades y su caducidad.'),
-M('walkies','Comunicaciones y plan de contacto','i','comunicaciones',[S.PC,S.FE],(p,x)=>'Si cae la red móvil, hace falta otra forma de hablar y un plan de quién llama a quién.'+c(x.rural,' En zona rural los walkies tienen menos alcance por el relieve.'),()=>'Ten un par de walkies PMR446 (uso libre en la UE) probados entre habitaciones, y un contacto fuera de la zona que todos sepan. Anótalo.'),
-M('mochila','Mochila de emergencia 72 h','i','evacuación',[S.UE,S.CR,S.FE],(p,x)=>`Si hay que salir de casa, no hay tiempo de hacer maletas. Una por persona: ${x.hog}.`+c(x.med,' Con la medicación crítica dentro.')+c(x.volc,' Con zona volcánica: mascarillas FFP2 y gafas para la ceniza.'),()=>'Prepara una mochila de 72 h por persona: agua, comida, linterna, radio, botiquín, copia de documentos, ropa y efectivo. Anótala en el registro.'),
-M('mascotas','Mascotas','i','evacuación',[S.FE],(p,x)=>`En una evacuación, ${x.pt} también necesitan su plan: comida, agua, transportín y documentación.`,()=>'Prepara un kit de 3 días para tu mascota con transportín, correa, comida y cartilla. Anota dónde está.',x=>!x.pets),
-M('evacuacion','Rutas de evacuación','s','evacuación',[S.PC],(p,x)=>{const r=[];if(x.inund)r.push('inundación: zonas altas, nunca barrancos ni pasos bajos');if(x.fuego)r.push('incendio: alejarse del monte en dirección contraria al viento');if(x.volc)r.push('volcán: rutas oficiales del Plan de emergencias');if(x.costa)r.push('temporal: lejos de primera línea');if(x.ind)r.push('industria: confinarse salvo orden contraria');return 'Saber por dónde salir antes de necesitarlo.'+c(r.length,' Según tus riesgos: '+r.join('; ')+'.')+c(x.mov,' Con movilidad reducida, la ruta tiene que ser practicable para ella.')+c(x.isla,' En una isla, infórmate del plan insular de emergencias.')},()=>'Elige dos rutas de salida de tu zona y recórrelas al menos una vez, a pie o en coche. Apúntalas en el plan del hogar.'),
-M('digital','Copias digitales cifradas','i','seguridad digital',[S.UE],()=>'Si se pierden los papeles, una copia cifrada y sin nube permite rehacerlo todo.',()=>'Escanea documentos clave y guárdalos cifrados en un pendrive (con contraseña que sepáis), sin subirlos a ninguna nube. Anota dónde está.'),
-M('semanadespensa','Semana de despensa','x','habilidades',[S.UE],(p,x)=>'Examen del nivel: demostrar que tu despensa y tu agua funcionan en la vida real.',()=>'Durante 7 días, comed solo de vuestra despensa y reserva, sin ir al supermercado. Anota qué faltó y repón. Solo cuenta si lo habéis hecho.')],
-3:[
-M('inventario','Despensa de 3 meses e inventario','i','comida',[S.UE,S.FE],(p,x)=>'Tres meses solo funcionan con un inventario: sabes qué hay, cuánto y cuándo caduca.'+dietTxt(x)+c(x.isla,' En una isla, una crisis de transporte marítimo dura semanas.'),()=>'Crea un inventario de la despensa (en papel o en el registro) y amplía hacia 3 meses de básicos: legumbres, arroz, pasta, aceite, conservas. Anota cantidades.'),
-M('lluvia','Agua de lluvia o aljibe','i','agua',[S.OMS,S.SAN],(p,x)=>x.alj?'Tu aljibe o pozo es una reserva enorme si sabes sacarla sin bomba y mantenerla limpia.':'Recoger agua de lluvia, donde esté permitido, da agua no potable para limpieza y riego.',(p,x)=>x.alj?'Revisa la limpieza del aljibe y prepara una forma manual de sacar agua (bomba manual o cubo). Anótalo.':'Instala una recogida de lluvia sencilla si es legal en tu municipio, o ten bidones extra. Anótalo.',x=>x.can&&!x.alj&&x.piso),
-M('huerto','Huerto o germinados','s','comida',[S.FE],(p,x)=>x.piso?'En un piso no hace falta huerto: germinados y macetas dan comida fresca en días.':'Un huerto pequeño da comida fresca y una habilidad que no se pierde.',(p,x)=>x.piso?'Haz germinados en un bote y cultiva algo en maceta (lechugas, hierbas). Cuenta cuando hayas cosechado tú.':'Cultiva un pequeño bancal con dos o tres cultivos fáciles. Cuenta cuando hayas cosechado tú.'),
-M('medcronica','Salud a largo plazo','i','salud y botiquín',[S.SAN],(p,x)=>(x.med?'Para tres meses, la medicación crónica necesita un plan hablado con tu médico.':'La salud que se descuida en tiempos normales se complica en una crisis larga.')+c(x.saludLejos,' Con el centro de salud lejos, más aún.'),(p,x)=>(x.med?'Pide a tu médico cómo tener una reserva legal de la medicación crónica y anótala con caducidad.':'Revisa con tu médico o farmacéutico qué conviene tener en casa.')+' Haz también una revisión dental si toca.'),
-M('energia3','Energía robusta','i','energía',[S.UE],(p,x)=>'Para meses, la energía tiene que recargarse sola.'+c(x.calor||x.can,' Con tu sol, la solar es la opción más lógica.'),()=>'Dimensiona un sistema solar con batería para lo esencial (luz, nevera pequeña o radio, carga). Anota potencia y capacidad.'),
-M('seghogar','Seguridad física del hogar','i','seguridad física',[S.PC],(p,x)=>'En crisis largas, una casa segura es tranquilidad.'+c(x.sism,' En zona sísmica, fija muebles altos.')+c(x.costa,' En costa, revisa cierres ante temporales.'),()=>'Revisa cerraduras, puertas y ventanas, y fija estanterías o muebles altos. Anota lo que hiciste.'),
-M('finanzas','Fondo de reserva','i','respaldo analógico',[S.UE],()=>'Una crisis larga suele venir con problemas de ingresos.',()=>'Separa un fondo de emergencia en una cuenta aparte y algo de efectivo. Anota que existe y dónde.'),
-M('reparaciones','Reparaciones básicas','s','habilidades',[S.FE],()=>'Sin técnicos disponibles, saber arreglar un grifo o un enchufe es autonomía.',()=>'Haz tú una reparación básica real: cambiar un grifo, un fusible o un enchufe (sin tensión). Ten una caja de herramientas a mano.'),
-M('conservas','Conservas caseras','s','habilidades',[S.SAN],()=>'Conservar comida alarga la despensa y aprovecha el huerto. Hecho mal es peligroso (botulismo).',()=>'Haz una tanda de conservas siguiendo una guía oficial de seguridad alimentaria. Solo cuenta si lo has hecho tú.'),
-M('barrio','Red de apoyo de barrio','s','protocolos familiares',[S.CR,S.UE],(p,x)=>'En crisis largas, sobrevive mejor la comunidad que el individuo.'+c(x.rural,' En tu entorno, esa red es aún más necesaria.'),()=>'Organiza o únete a una red de vecinos: grupo de contacto, quién tiene qué habilidad y a quién ayudar. Hazlo tú.'),
-M('auditoria','Auditoría y fin de semana autónomo','x','habilidades',[S.UE,S.FE],()=>'Examen del nivel: comprobar que el sistema rota y funciona sin red.',()=>'Revisa todo el registro (caducidades, cargas, cantidades) y pasa un fin de semana sin supermercado y, si es posible, sin red eléctrica. Anota los fallos.')],
-4:[
-M('autosuf','Autosuficiencia parcial','s','comida',[S.FE],(p,x)=>x.piso?'En un piso, la autosuficiencia es parcial: germinados, macetas y semillas propias.':'Un huerto productivo con semillas propias reduce dependencia.',()=>'Produce una parte de tu comida durante una temporada y guarda semillas propias. Solo cuenta lo cosechado.'),
-M('energia4','Energía autónoma','i','energía',[S.UE],()=>'La última dependencia que se corta es la de la red eléctrica.',()=>'Asegura que lo esencial de la casa puede funcionar con tu energía propia una semana. Anota el sistema.'),
-M('auxilios2','Primeros auxilios avanzados','s','salud y botiquín',[S.CR],()=>'En una crisis larga, la ayuda médica puede tardar.',()=>'Haz un curso avanzado de primeros auxilios (Cruz Roja u otra entidad acreditada). Solo cuenta si lo has hecho tú.'),
-M('radioaf','Radioaficionado','s','comunicaciones',[S.MI],(p,x)=>'Cuando caen todas las redes, los radioaficionados siguen comunicando.'+c(x.isla,' Desde una isla, es la forma de hablar con el exterior.'),()=>'Obtén la licencia de radioaficionado (examen oficial EA) y haz tu primer contacto. Solo cuenta con la licencia.'),
-M('navegacion','Navegación sin GPS','s','habilidades',[S.FE],()=>'Sin satélites ni datos, un mapa en papel y una brújula siguen funcionando.',()=>'Recorre una ruta conocida usando solo mapa en papel y brújula. Hazlo tú.'),
-M('comunidad','Comunidad organizada','s','protocolos familiares',[S.CR,S.UE],()=>'La resiliencia a largo plazo es colectiva.',()=>'Participa en una organización local (protección civil voluntaria, Cruz Roja, asociación vecinal). Cuenta cuando estés dentro.'),
-M('reubicacion','Plan de reubicación','i','evacuación',[S.PC],(p,x)=>'Algunas crisis obligan a irse por mucho tiempo.'+c(x.isla,' En una isla, piensa cómo y a dónde saldrías.')+c(x.volc,' En zona volcánica, es un escenario real.'),()=>'Define un lugar alternativo donde vivir (familia, amigos), cómo llegar y qué llevar. Anótalo en el registro.'),
-M('mantenimiento','Mantenimiento del sistema','s','habilidades',[S.FE],()=>'Un sistema sin mantenimiento se degrada. Revisar cada seis meses basta.',()=>'Fija dos fechas al año para revisar todo el registro y hazlo una vez completo.'),
-M('autonomo','72 horas en modo autónomo','x','habilidades',[S.UE],()=>'Examen final: demostrar que el hogar funciona solo.',()=>'Vivid 72 horas sin red eléctrica ni compras, con vuestra agua, comida, energía y comunicaciones. Anota lo aprendido.')]};
-const curFor=(lv,p)=>CUR[lv].filter(m=>!(m.sk&&m.sk(X(p))));
-const OLDK=['luz','agua','comida','movil','radio','botiquin','efectivo','plan'];
-
-/* ===== Misiones ===== */
-const semana=()=>{const d=new Date(),k=(d.getDay()+6)%7;d.setDate(d.getDate()-k);return 'Semana del '+d.toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'}).replace('.','')};
-const defOf=m=>CUR[m.lvl||1].find(d=>d.k===m.key);
-const txt=(d,p)=>({porque:d.w(p||{},X(p)),objetivo:d.o(p||{},X(p))});
-function renumber(){[1,2,3,4].forEach(l=>D.misiones.filter(m=>(m.lvl||1)===l).forEach((m,i)=>{const d=defOf(m);m.num=i+1;m.t=d?d.t:m.t||m.titulo.split(':').pop().trim();m.titulo=(d&&d.ty==='x'?'Examen':`Misión ${i+1}`)+': '+m.t}))}
-function addMision(lv,d){const id=Math.max(0,...D.misiones.map(m=>m.id||0))+1;D.misiones.push({id,lvl:lv,nivel:lv,key:d.k,t:d.t,semana:semana(),hecha:false,...txt(d,D.perfil)});renumber()}
-function unlockNext(){if(D.fin||D.misiones.some(m=>!m.hecha))return false;const lv=D.nivel,nx=curFor(lv,D.perfil).find(d=>!D.misiones.some(m=>m.lvl===lv&&m.key===d.k));if(!nx)return false;addMision(lv,nx);return true}
-const active=()=>D.misiones.find(x=>!x.hecha);
-const linked=id=>D.registro.filter(r=>+r.mision===id&&r.estado!=='Deseo');
-/* ===== Revisiones ===== */
+/* Plan B v5 · PWA sin IA, sin nube. Datos solo en este dispositivo (localStorage 'planb'). Territorio: España (112). */
+'use strict';
+const LS=localStorage,KEY='planb';
+if(!LS.getItem(KEY)&&LS.getItem('ohara'))LS.setItem(KEY,LS.getItem('ohara'));
+let D=null;try{D=JSON.parse(LS.getItem(KEY)||'null')}catch(e){D=null}
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,ch=>'&#'+ch.charCodeAt(0)+';');
+const save=()=>LS.setItem(KEY,JSON.stringify(D));
+const ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const today=()=>ymd(new Date());
 const plusM=(d,n)=>{const x=new Date(d+'T12:00');x.setMonth(x.getMonth()+n);return ymd(x)};
+const fmtD=d=>d?new Date(d+'T12:00').toLocaleDateString('es-ES',{day:'numeric',month:'short',year:'numeric'}).replace('.',''):'—';
+const ans=v=>v!==undefined&&v!==null&&v!==NS&&v!==''&&!(Array.isArray(v)&&!v.length);
+const given=v=>v!==undefined&&v!==null&&v!==''&&!(Array.isArray(v)&&!v.length);
+const hasO=(v,o)=>Array.isArray(v)&&v.includes(o);
+const list=a=>a.length<=1?a.join(''):a.slice(0,-1).join(', ')+' y '+a[a.length-1];
+const pad2=n=>String(n).padStart(2,'0');
+const mmss=s=>s==null?'—':(s>=60?Math.floor(s/60)+' min '+pad2(s%60)+' s':s+' s');
+let tab=({'#panel':'p','#mision':'m','#niveles':'n','#guia':'g','#registro':'r','#equipo':'e','#perfil':'f'})[location.hash]||'p';
+let wz=null,viewKey=null,run=null,runTick=null,emg=null,deferredPrompt=null,askedFill=false;
+
+/* ===================== Contexto del perfil ===================== */
+const W_PESO={'Menos de 5 kg':3,'5 a 15 kg':10,'15 a 30 kg':22,'Más de 30 kg':35};
+const KCAL={'3–12':1600,'13–17':2400,'18–64':2100,'65+':1900};
+const pname=(p,i)=>ans(p.alias)?p.alias:'Persona '+(i+1);
+const mname=(m,i)=>ans(m.nombre)?m.nombre:(ans(m.especie)?m.especie:'Animal')+' '+(i+1);
+const petLday=(m,calor)=>W_PESO[m.peso]?Math.ceil(W_PESO[m.peso]*.06*(calor?1.5:1)*2)/2:null;
+function X(src){src=src||D||{};const h=src.hogar||{},P=src.personas||[],pets=src.mascotas||[];
+ const nm=f=>P.map((p,i)=>f(p)?pname(p,i):null).filter(Boolean);
+ const calor=['Calor intenso frecuente','Ambos extremos'].includes(h.clima)||hasO(h.riesgos,'Olas de calor');
+ const frio=['Frío intenso frecuente','Ambos extremos'].includes(h.clima)||hasO(h.riesgos,'Frío extremo o nevadas');
+ const Lpp=calor?6:4,n=(h.nper===NS||!P.length)?null:P.length;
+ const ppl=P.map((p,i)=>{let L=Lpp;const notes=[];if(p.embarazo==='Embarazo'||p.embarazo==='Lactancia'){L+=1;notes.push(p.embarazo+': +1 L (orientativo)')}
+  if(p.edad==='0–2'){notes.push('bebé: leche o papillas aparte');if(hasO(p.lactante,'Leche de fórmula'))notes.push('incluye agua para la fórmula')}
+  let k=KCAL[p.edad]??(p.edad==='0–2'?0:null);if(k&&p.cantidad==='Poco')k*=.85;if(k&&p.cantidad==='Mucho')k*=1.2;
+  if(p.med==='Sí')notes.push('medicación'+(p.medFrio==='Sí'?' en frío':''));if(p.aparato==='Sí, con electricidad')notes.push('aparato eléctrico');
+  return{name:pname(p,i),L,kcal:k==null?null:Math.round(k/50)*50,notes,p}});
+ let petL=0,petUnknown=0;pets.forEach(m=>{const l=petLday(m,calor);if(l)petL+=l;else petUnknown++});
+ const Lday=n?Math.ceil(ppl.reduce((a,b)=>a+b.L,0)+petL):null;
+ const kcal=n&&ppl.every(q=>q.kcal!=null)?ppl.reduce((a,b)=>a+b.kcal,0):null;
+ const diets=[...new Set(P.map(p=>p.dieta).filter(d=>d==='Vegetariana'||d==='Vegana'))];
+ const intol=P.map((p,i)=>ans(p.intol)&&p.intol!=='Nada'?pname(p,i)+': '+p.intol:null).filter(Boolean);
+ const dietTxt=(diets.length?` Hay dieta ${diets.join(' y ').toLowerCase()} (${list(nm(p=>diets.includes(p.dieta)))}): prioriza proteína vegetal en conserva y frutos secos.`:'')+(intol.length?' Ojo con: '+intol.join('; ')+'.':'');
+ const arr=v=>Array.isArray(v)?v:[];
+ const cerca=arr(h.cerca),rg=arr(h.riesgos),cocina=arr(h.cocina),acs=arr(h.acs),elec=arr(h.elec),vt=arr(h.vehTipo);
+ const inund=cerca.includes('Barranco, río o zona baja')||rg.includes('Inundaciones o DANA'),forestal=cerca.includes('Monte o zona forestal')||rg.includes('Incendios forestales'),costa=cerca.includes('Costa')||rg.includes('Temporales o huracanes'),ind=cerca.includes('Industria química o puerto'),volc=rg.includes('Volcán'),sism=rg.includes('Terremotos');
+ const riskList=[];if(inund)riskList.push('inundación (zonas altas)');if(forestal)riskList.push('incendio forestal');if(costa)riskList.push('temporal');if(ind)riskList.push('accidente industrial (confinarse)');if(volc)riskList.push('erupción volcánica');if(sism)riskList.push('terremoto');
+ const routeTips=[];if(inund)routeTips.push('inundación: zonas altas, nunca barrancos ni pasos bajos');if(forestal)routeTips.push('incendio: alejarse del monte en dirección contraria al humo');if(volc)routeTips.push('volcán: rutas del plan oficial de emergencias');if(costa)routeTips.push('temporal: lejos de primera línea');if(ind)routeTips.push('industria: confinarse salvo orden contraria');
+ const pais='España',emer='112'; /* v5: la app asume territorio español */
+ const medP=nm(p=>p.med==='Sí'),frioP=nm(p=>p.medFrio==='Sí'),devP=nm(p=>p.aparato==='Sí, con electricidad');
+ const helpP=nm(p=>['Reducida','Silla de ruedas','Encamada'].includes(p.movil)||hasO(p.limit,'No puede subir escaleras')||hasO(p.limit,'Necesita que le lleven en brazos')||p.edad==='0–2');
+ const awayP=nm(p=>['Jornada completa','Días seguidos'].includes(p.fuera)||['10 a 30 km','Más de 30 km'].includes(p.dist));
+ const moviles=P.filter(p=>p.tieneMovil!=='No'&&!['0–2','3–12'].includes(p.edad)).length;
+ const vehs=!!h.vehiculos&&!['Ninguno',NS].includes(h.vehiculos);
+ const impr=P.map((p,i)=>ans(p.impres)&&p.impres!=='Nada'?pname(p,i)+': '+p.impres:null).filter(Boolean);
+ const allergy=P.map((p,i)=>ans(p.alergias)&&p.alergias!=='Ninguna'?pname(p,i)+' ('+p.alergias+')':null).filter(Boolean);
+ return{h,P,pets,ppl,n,Lpp,Lday,petL,petUnknown,kcal,calor,frio,dietTxt,quien:n===1?'ti':n?`las ${n} personas de casa`:'cada persona',
+  piso:h.vivienda==='Piso',casa:h.vivienda==='Casa',alto:h.vivienda==='Piso'&&(h.planta==='4.ª o más'||h.ascensor==='No'),terraza:hasO(h.exterior,'Terraza o balcón'),patio:hasO(h.exterior,'Patio o jardín'),exteriorSi:hasO(h.exterior,'Terraza o balcón')||hasO(h.exterior,'Patio o jardín'),almacenPoco:h.almacen==='Muy poco',
+  rural:h.entorno==='Rural o aislado',isla:h.isla==='Sí',hospLejos:h.hospital==='Más de 45 min',superLejos:h.super==='Más de 45 min',unaCarretera:h.carretera==='Sí',
+  inund,forestal,costa,ind,volc,sism,riskList,routeTips,pais,emer,eu:UE_PAISES.includes(pais),us:pais==='Estados Unidos',
+  aljibe:['Aljibe o depósito','Pozo'].includes(h.agua),aguaRedLike:h.agua!=='Otra',bombaRisk:h.bomba==='Sí'||((h.agua==='Pozo'||h.agua==='Aljibe o depósito')&&h.bomba!=='No'),
+  cocinaElec:cocina.includes('Eléctrica'),cocinaLlama:cocina.some(o=>['Butano o propano','Gas natural','Leña'].includes(o)),cocinaKnown:cocina.length>0,lena:cocina.includes('Leña'),lenaHeat:cocina.includes('Leña')||acs.includes('Leña'),gasCanal:cocina.includes('Gas natural')||acs.includes('Gas natural'),combustion:[...cocina,...acs].some(o=>['Butano o propano','Gas natural','Leña'].includes(o)),
+  solar:elec.includes('Placas solares con batería'),sinElec:elec.includes('Sin electricidad'),satInternet:hasO(h.internet,'Satélite'),
+  vehs,vehElec:vt.includes('Eléctrico'),vehComb:vt.some(o=>['Combustión','Híbrido','Moto'].includes(o)),
+  anyKid:P.some(p=>['0–2','3–12'].includes(p.edad)),anyBaby:P.some(p=>p.edad==='0–2'),anyFormula:P.some(p=>hasO(p.lactante,'Leche de fórmula')),anyOld:P.some(p=>p.edad==='65+'),anyPreg:P.some(p=>['Embarazo','Lactancia'].includes(p.embarazo)),
+  anyMov:P.some(p=>['Reducida','Silla de ruedas','Encamada'].includes(p.movil)),anyDeaf:P.some(p=>hasO(p.sentidos,'Oye mal')),
+  medN:medP.length,medQ:list(medP),medUnknown:P.some(p=>p.med===NS||p.med===undefined),medFrio:frioP.length>0,medFrioQ:list(frioP),elecDev:devP.length>0,elecDevQ:list(devP),cronN:P.filter(p=>p.cronica==='Sí').length,
+  helpQ:list(helpP),awayQ:list(awayP),moviles,imprTxt:impr.join('; '),allergyTxt:allergy.join(', '),faKnown:list(nm(p=>hasO(p.habil,'Primeros auxilios'))),
+  petNames:list(pets.map(mname)),petMed:pets.some(m=>m.medm==='Sí')}}
+
+/* ===================== Misiones ===================== */
+const defK=k=>CUR.find(d=>d.k===k);
+const visible=(d,x)=>!d.c||d.c(x||X());
+const levelDefs=(lv,x)=>{x=x||X();return CUR.filter(d=>d.lv===lv&&visible(d,x))};
+const inst=k=>D.misiones.find(m=>m.key===k);
+const isDone=k=>{const m=inst(k);return !!(m&&m.hecha)};
+const semana=()=>{const d=new Date(),k=(d.getDay()+6)%7;d.setDate(d.getDate()-k);return 'Semana del '+d.toLocaleDateString('es-ES',{day:'numeric',month:'short'}).replace('.','')};
+function activeDef(){if(D.fin)return null;const x=X();return levelDefs(D.nivel,x).find(d=>!isDone(d.k))||null}
+function ensureInst(k){let m=inst(k);if(!m){const d=defK(k);m={id:Math.max(0,...D.misiones.map(q=>q.id||0))+1,key:k,lvl:d.lv,semana:semana(),hecha:false,tiempos:{}};D.misiones.push(m)}m.tiempos=m.tiempos||{};return m}
+const objOf=(d,x)=>d.o(x||X());
+const numOf=(d,x)=>levelDefs(d.lv,x).findIndex(q=>q.k===d.k)+1;
+
+/* ===================== Registro ===================== */
+const ESTADOS=['Deseo','Tengo','Hecho','Explicado','Aprendido'];
+const FAC={Deseo:0,Tengo:.4,Hecho:.6,Explicado:0,Aprendido:.8};
+const UNIDADES=['L','raciones (persona·día)','días (todo el hogar)','Wh','mAh','unidades'];
+const UBT=['Casa','Mochila','Trabajo','Vehículo'];
+const due=r=>!!(r.revision&&r.revision<=today());
+const expired=r=>!!(r.caduca&&r.caduca<today());
+const validRow=r=>['Tengo','Hecho','Aprendido'].includes(r.estado)&&(r.estado!=='Tengo'||((r.cantidad||r.cantNum)&&r.ubicacion&&r.confirmado))&&!due(r)&&!expired(r);
+const keyOfMid=id=>(D.misiones.find(m=>m.id===id)||{}).key;
+const linked=id=>{const k=keyOfMid(id);return D.registro.filter(r=>(+r.mision===id||(k&&r.misionKey===k))&&r.estado!=='Deseo'&&isMine(r))};
+const dueRows=()=>D.registro.map((r,i)=>[r,i]).filter(([r])=>due(r)||expired(r));
 function revDefault(r){const base=r.confirmado||today(),mk=(D.misiones.find(m=>m.id===+r.mision)||{}).key||'';
+ if(r.estado==='Aprendido')return plusM(base,12);
  if(/medic/i.test(r.recurso+mk)&&r.caduca&&r.caduca>today())return r.caduca;
- if(mk==='documentos'||mk==='digital'||/document|dni|pasaporte|póliza|seguro|fotocopia/i.test(r.recurso))return plusM(base,12);
+ if(['documentos','digital','finanzas','reubicacion'].includes(mk)||/document|dni|pasaporte|póliza|seguro|fotocopia/i.test(r.recurso))return plusM(base,12);
  const six=plusM(base,6);return r.caduca&&r.caduca>today()&&r.caduca<six?r.caduca:six}
-const dueRows=()=>D.registro.map((r,i)=>[r,i]).filter(([r])=>r.revision&&r.revision<=today());
-function revisado(i){const r=D.registro[i];r.confirmado=today();r.revision=revDefault({...r});buzz();save();render()}
-/* ===== Repasos ===== */
-const DEP={adultos:['agua','comida','agua14','despensa14','mochila','inventario'],menores:['agua','comida','agua14','despensa14','mochila','inventario'],mascotas:['agua','comida','mascotas'],mascotasTipo:['mascotas'],dieta:['comida','despensa14','inventario'],dietaOtro:['comida','despensa14'],medicacion:['medicacion','medcronica','mochila'],medicacionNota:['medicacion','medcronica'],vivienda:['agua','plan'],planta:['agua','plan'],ascensor:['agua','plan'],cocina:['comida','seguridad','cocinar'],agua:['agua','sanea','lluvia'],extras:['agua','sanea','lluvia'],region:['plan','evacuacion'],entorno:['plan','evacuacion','radio'],riesgos:['plan','evacuacion'],cerca:['plan','evacuacion'],movilidad:['plan','evacuacion'],dependientes:['plan'],clima:['termico','agua','agua14']};
-function repasoTitle(m,p){const x=X(p);if(m.key==='agua')return `Repaso: Agua (sois ${x.n} ahora: necesitas ${x.n*x.L} L)`;if(m.key==='agua14')return `Repaso: Agua 2 semanas (sois ${x.n}: ${x.n*x.L*14} L)`;if(m.key==='comida')return `Repaso: Comida (${x.hog})`;return 'Repaso: '+m.t}
-function diffPerfil(a,b){D.repasos=D.repasos||[];const keys=new Set();Object.keys(DEP).forEach(k=>{if(JSON.stringify(a[k]??null)!==JSON.stringify(b[k]??null))DEP[k].forEach(x=>keys.add(x))});
- D.misiones.forEach(m=>{const d=defOf(m);if(!d)return;if(!m.hecha){Object.assign(m,txt(d,b));return}if(!keys.has(m.key))return;
-  D.repasos=D.repasos.filter(r=>r.resuelto||r.mid!==m.id);D.repasos.push({id:Date.now()+m.id,mid:m.id,key:m.key,titulo:repasoTitle(m,b),texto:d.o(b,X(b)),fecha:today(),resuelto:false})})}
-function ajustado(id){const r=D.repasos.find(x=>x.id===id);r.resuelto=today();buzz();save();render()}
-/* ===== Migración ===== */
-function migrate(){if(!D)return;D.misiones=D.misiones||[];D.registro=D.registro||[];D.repasos=D.repasos||[];
- D.misiones.forEach(m=>{if(!m.lvl)m.lvl=m.nivel||1;if(!m.key){const t=(m.titulo||'').split(':').pop().trim().toLowerCase(),hit=CUR[m.lvl].find(d=>d.t.toLowerCase()===t);m.key=m.idx!=null?OLDK[m.idx]:hit?hit.k:/luz/.test(t)?'luz':/agua/.test(t)?'agua':/comida/.test(t)?'comida':/móvil|energ/.test(t)?'movil':/radio|informa/.test(t)?'radio':/botiqu/.test(t)?'botiquin':/efectivo/.test(t)?'efectivo':/plan/.test(t)?'plan':'luz'}delete m.idx});
- const seen=new Set();D.misiones=D.misiones.filter(m=>{const k=m.lvl+m.key;if(seen.has(k))return false;seen.add(k);return true});
- let a=false;D.misiones=D.misiones.filter(m=>{if(m.hecha)return true;if(a)return false;a=true;return true});
- D.nivel=D.nivel||1;D.ver=3;renumber();if(D.perfil){D.misiones.forEach(m=>{const d=defOf(m);if(d&&!m.hecha)Object.assign(m,txt(d,D.perfil))});unlockNext()}}
-/* ===== Completar ===== */
-async function done(id){const m=D.misiones.find(x=>x.id===id),d=defOf(m)||{ty:'i'};
- if(d.ty==='i'&&!linked(id).length){if(await ask(`<h2>Falta la prueba</h2><p>Solo cuenta lo demostrado. Para cerrar «${esc(m.t)}» necesitas al menos una fila en el registro vinculada a esta misión, en estado <b>Tengo</b> (con cantidad, ubicación exacta y fecha de confirmación) o <b>Hecho</b>.</p><p>¿La añades ahora?</p>`))edit(null,id);return}
- if(d.ty!=='i'){if(!await ask(`<h2>¿Lo has hecho tú?</h2><p>${d.ty==='x'?'Es el examen del nivel.':'Esta misión es de saber hacer.'} Solo cuenta si lo has hecho tú mismo. Se registrará como <b>Aprendido</b>, no como Explicado.</p>`))return;
-  D.registro.push({recurso:m.t,categoria:d.cat||'habilidades',estado:'Aprendido',ubtipo:'Casa',uso:'Uso diario',sabe:'Sí',confirmado:today(),revision:plusM(today(),6),mision:id})}
- else if(!await ask('<h2>¿Misión completada?</h2><p>Tiene prueba en el registro. Ciérrala solo si lo has comprobado de verdad.</p>'))return;
- m.hecha=true;m.fecha=today();if(d.ty==='x'){if(m.lvl>=4)D.fin=true;else D.nivel=m.lvl+1}
- justDone=id;save();render();setTimeout(()=>{justDone=null;if(unlockNext()){save();render()}},1400)}
 
+/* ===================== XP ===================== */
+const XPB={i:30,s:30,d:40,x:60},TXP=20;
+const tScore=(s,obj)=>s==null?0:s<=obj?1:Math.max(.3,obj/s);
+function split(d,v,acc){const w=d.a.length>1?[.6,.4]:[1];d.a.forEach((a,i)=>acc[a]=(acc[a]||0)+v*w[i])}
+function mXP(m,d){const out={a:{},f:0,frozen:0,fac:0};if(!m||!d)return out;
+ let tv=0;(d.tm||[]).forEach(([k,,obj])=>{const t=m.tiempos&&m.tiempos[k];if(t)tv+=TXP*tScore(t.best,obj)});
+ if(tv){out.a.rsp=tv;out.f+=tv}
+ if(!m.hecha)return out;
+ let fac=0;
+ if(d.ty==='i'){const rows=linked(m.id),ok=rows.filter(validRow);if(ok.length){fac=Math.max(...ok.map(r=>FAC[r.estado]));if(m.aprendido)fac=.8}else if(rows.length){out.frozen=XPB.i*Math.max(.4,...rows.map(r=>FAC[r.estado]||0))}else fac=.4}
+ else if(d.ty==='s'){const rows=linked(m.id);if(rows.length&&rows.every(r=>due(r)))out.frozen=XPB.s*.8;else fac=.8}
+ else fac=1;
+ const v=XPB[d.ty]*fac;split(d,v,out.a);out.f+=v;out.fac=fac;return out}
+function maxXP(lv,x){const a={},f={};levelDefs(lv,x).forEach(d=>{const v=XPB[d.ty]*(d.ty==='i'||d.ty==='s'?.8:1);split(d,v,a);f[d.f]=(f[d.f]||0)+v;(d.tm||[]).forEach(()=>{a.rsp=(a.rsp||0)+TXP;f[d.f]=(f[d.f]||0)+TXP})});return{a,f}}
+function score(){const x=X(),A={},F={};let frozen=0;ATR.forEach(([k])=>A[k]=0);FR.forEach(([k])=>F[k]=0);
+ D.misiones.forEach(m=>{const d=defK(m.key);if(!d||!visible(d,x))return;const r=mXP(m,d);Object.entries(r.a).forEach(([k,v])=>A[k]+=v);F[d.f]+=r.f;frozen+=r.frozen});
+ const bonus={};D.registro.filter(r=>!r.mision&&validRow(r)&&r.frente).forEach(r=>{bonus[r.frente]=Math.min(30,(bonus[r.frente]||0)+3)});
+ Object.entries(bonus).forEach(([f,v])=>{if(F[f]!=null){F[f]+=v;A.rec+=v}});
+ (D.aver||[]).forEach(q=>{A.res+=5;if(F[q.f]!=null)F[q.f]+=5});
+ const ex=extraXP();Object.entries(ex.a).forEach(([k,v])=>A[k]+=v);Object.entries(ex.f).forEach(([k,v])=>{if(F[k]!=null)F[k]+=v});
+ const lv=D.fin?4:D.nivel,cumA={},cumF={};let lo=0,hi=0;
+ for(let l=1;l<=lv;l++){const mx=maxXP(l,x),tot=Object.values(mx.a).reduce((s,v)=>s+v,0);if(l<lv)lo+=tot;hi+=tot;Object.entries(mx.a).forEach(([k,v])=>cumA[k]=(cumA[k]||0)+v);Object.entries(mx.f).forEach(([k,v])=>cumF[k]=(cumF[k]||0)+v)}
+ const min={};ATR.forEach(([k])=>min[k]=Math.round(.4*(cumA[k]||0)));
+ Object.keys(A).forEach(k=>A[k]=Math.round(A[k]));Object.keys(F).forEach(k=>F[k]=Math.round(F[k]));
+ const block=ATR.filter(([k])=>A[k]<min[k]).map(([k])=>k);
+ const T=Object.values(A).reduce((s,v)=>s+v,0);
+ const fr=hi>lo?Math.max(0,Math.min(1,(T-lo)/(hi-lo))):1,cuts=[0,.2,.45,.7];let ri=0;cuts.forEach((q,i)=>{if(fr>=q)ri=i});
+ const next=ri<3?Math.max(1,Math.ceil(lo+cuts[ri+1]*(hi-lo)-T)):0;
+ return{A,F,T,min,block,cumA,cumF,ri,next,frozen:Math.round(frozen),lv}}
+function checkLevel(){if(D.fin)return false;const ex=levelDefs(D.nivel).find(d=>d.ty==='x');if(!ex||!isDone(ex.k))return false;if(score().block.length)return false;
+ D.pasados=[...new Set([...(D.pasados||[]),D.nivel])];if(D.nivel>=4)D.fin=true;else D.nivel++;return true}
 
-if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');
-boot();
-function net(){const e=$('#net');e.classList.toggle('off',!navigator.onLine);e.title=navigator.onLine?'Con conexión · funciona igual sin ella':'Sin conexión · todo sigue funcionando'}net();addEventListener('online',net);addEventListener('offline',net);
-(function(){const c=$('#fx'),x=c.getContext('2d'),rm=matchMedia('(prefers-reduced-motion: reduce)');let P=[],w,h;function rs(){w=c.width=innerWidth;h=c.height=innerHeight;P=Array.from({length:34},()=>({x:Math.random()*w,y:Math.random()*h,v:.15+Math.random()*.35,r:Math.random()*1.4+.3}))}rs();addEventListener('resize',rs);
-function f(){x.clearRect(0,0,w,h);P.forEach(p=>{if(!rm.matches)p.y-=p.v;if(p.y<0)p.y=h;x.fillStyle='rgba(34,230,255,'+(.25+p.r/3)+')';x.beginPath();x.arc(p.x,p.y,p.r,0,7);x.fill()});if(!rm.matches&&!document.hidden)requestAnimationFrame(f);else setTimeout(()=>requestAnimationFrame(f),1000)}f()})();
+/* ===================== Autonomía ===================== */
+function autonomy(){const x=X(),ok=D.registro.filter(r=>validRow(r)&&(r.ubtipo==='Casa'||!r.ubtipo)),num=r=>parseFloat(String(r.cantNum||'').replace(',','.'))||0;
+ const L=ok.filter(r=>r.unidad==='L').reduce((s,r)=>s+num(r),0);
+ const rac=ok.filter(r=>r.unidad==='raciones (persona·día)').reduce((s,r)=>s+num(r),0),dh=ok.filter(r=>r.unidad==='días (todo el hogar)').reduce((s,r)=>s+num(r),0);
+ const wh=ok.reduce((s,r)=>s+(r.unidad==='Wh'?num(r):r.unidad==='mAh'?num(r)*3.7/1000:0),0);
+ const eNeed=x.n?Math.max(1,x.moviles)*12+10:null;
+ return{x,L,agua:x.Lday?L/x.Lday:null,comida:x.n?(rac/x.n+dh):null,rac,dh,wh,energia:eNeed?wh/eNeed:null,eNeed}}
+const dias=v=>v==null?'—':v<10?(Math.floor(v*10)/10).toLocaleString('es-ES'):Math.floor(v).toLocaleString('es-ES');
+
+/* ===================== Preguntas «No lo sé» ===================== */
+const qVisible=(q,obj)=>!q.c||q.c(obj);
+function unknowns(){const out=[];const H=D.hogar||{};
+ HQ.forEach(s=>s.q.forEach(q=>{if(qVisible(q,H)&&H[q.k]===NS)out.push({sid:'h:'+s.id,l:q.l,who:'Hogar',f:q.f})}));
+ (D.personas||[]).forEach((p,i)=>PQ.forEach(s=>{if(s.c&&!s.c(p))return;s.q.forEach(q=>{if(qVisible(q,p)&&p[q.k]===NS)out.push({sid:'p:'+p.id+':'+s.id,l:q.l,who:pname(p,i),f:q.f})})}));
+ (D.mascotas||[]).forEach((m,i)=>MQ.forEach(s=>s.q.forEach(q=>{if(m[q.k]===NS)out.push({sid:'m:'+m.id+':'+s.id,l:q.l,who:mname(m,i),f:q.f})})));return out}
+function unknownsKeys(){const m=new Map();if(!D||!D.hogar)return m;unknowns().forEach(u=>{const id=u.sid+'|'+u.l;m.set(id,{id,f:FRN[u.f]?u.f:'doc'})});return m}
+function screensFor(src,mode){const out=[];
+ HQ.forEach(s=>{if(s.only==='onb'&&mode==='edit')return;out.push({id:'h:'+s.id,s,scope:'h',obj:src.hogar})});
+ src.personas.forEach((p,i)=>PQ.forEach(s=>{if(s.c&&!s.c(p))return;if(!isMine(p))return;out.push({id:'p:'+p.id+':'+s.id,s,scope:'p',obj:p,idx:i,who:'Persona '+(i+1)+' de '+src.personas.length})}));
+ src.mascotas.forEach((m,i)=>MQ.forEach(s=>out.push({id:'m:'+m.id+':'+s.id,s,scope:'m',obj:m,idx:i,who:'Animal '+(i+1)+' de '+src.mascotas.length})));return out}
+const pendingQ=sc=>sc.s.q.filter(q=>qVisible(q,sc.obj)&&!given(sc.obj[q.k]));
+function unanswered(){if(!D||!D.hogar)return 0;return screensFor({hogar:D.hogar,personas:D.personas||[],mascotas:D.mascotas||[]},'fill').reduce((s,sc)=>s+pendingQ(sc).length,0)}
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+function syncArrays(dr){const h=dr.hogar;if(typeof h.nper==='number'){while(dr.personas.length<h.nper)dr.personas.push({id:uid()});if(dr.personas.length>h.nper)dr.personas.length=h.nper}
+ const nm=h.animales==='Sí'&&typeof h.nmasc==='number'?h.nmasc:h.animales==='No'?0:dr.mascotas.length;while(dr.mascotas.length<nm)dr.mascotas.push({id:uid()});if(dr.mascotas.length>nm)dr.mascotas.length=nm}
+
+/* ===================== Asistente del perfil ===================== */
+function startWz(mode,only){const src=D&&D.hogar?{hogar:D.hogar,personas:D.personas||[],mascotas:D.mascotas||[]}:{hogar:{},personas:[],mascotas:[]};
+ wz={mode,draft:structuredClone(src),hist:[],only:only||null,cur:null};wzNext(true)}
+function wzList(){const all=screensFor(wz.draft,wz.mode);if(wz.only)return all.filter(s=>wz.only.includes(s.id));if(wz.mode==='fill')return all.filter(s=>pendingQ(s).length||wz.hist.includes(s.id));return all}
+function wzCur(){return screensFor(wz.draft,wz.mode).find(s=>s.id===wz.cur)}
+function wzNext(first){if(!first){const sc=wzCur();if(sc){const miss=pendingQ(sc);if(miss.length){note('Responde o marca «No lo sé»: falta «'+miss[0].l+'».');const el=document.querySelector('[data-q="'+miss[0].k+'"]');if(el)el.scrollIntoView({block:'center'});return}if(sc.scope==='h')syncArrays(wz.draft)}}
+ const n=wzList().find(s=>!wz.hist.includes(s.id));if(n){wz.hist.push(n.id);wz.cur=n.id}else wz.cur='__sum';
+ if(wz.cur==='__sum'&&wz.mode==='edit'){wzEnd();return}window.scrollTo(0,0);render();const h=$('#v .wzh .k');if(h&&!first){h.tabIndex=-1;h.focus({preventScroll:true})}}
+function wzBack(){if(wz.cur==='__sum')wz.cur=wz.hist[wz.hist.length-1];else{wz.hist.pop();wz.cur=wz.hist[wz.hist.length-1]}if(!wz.cur){wzCancel();return}window.scrollTo(0,0);render()}
+function wzCancel(){if(!D||!D.hogar)return;
+ /* si se canceló añadir una persona o animal nuevo sin datos, se quita */
+ const real=o=>Object.keys(o).some(k=>k!=='id'&&k[0]!=='_');D.personas=D.personas.filter(real);D.mascotas=D.mascotas.filter(real);D.hogar.nper=D.personas.length||D.hogar.nper;if(D.hogar.animales==='Sí')D.hogar.nmasc=D.mascotas.length;save();wz=null;render()}
+function wzSet(qi,val){const sc=wzCur(),q=sc.s.q[qi];if(val===undefined)delete sc.obj[q.k];else sc.obj[q.k]=val}
+function keepFocus(id){const y=window.scrollY;render();window.scrollTo(0,y);const b=document.getElementById(id);if(b)b.focus({preventScroll:true})}
+function wzPick(qi,oi){const sc=wzCur(),q=sc.s.q[qi],cur=sc.obj[q.k];
+ if(oi===-1)wzSet(qi,cur===NS?undefined:NS);
+ else if(oi===-2)wzSet(qi,cur===q.nada?undefined:q.nada);
+ else if(q.ty==='one')wzSet(qi,cur===q.o[oi]?undefined:q.o[oi]);
+ else{const v=q.o[oi];let a=Array.isArray(cur)?cur.slice():[];a=a.includes(v)?a.filter(y=>y!==v):[...a,v];if(q.ex)a=v===q.ex?a.filter(y=>y===q.ex):a.filter(y=>y!==q.ex);wzSet(qi,a.length?a:undefined)}
+ keepFocus('q'+qi+'_'+oi)}
+function wzNum(qi,dl){const sc=wzCur(),q=sc.s.q[qi],cur=sc.obj[q.k];const v=typeof cur==='number'?cur+dl:q.min;wzSet(qi,Math.max(q.min,Math.min(q.max,v)));keepFocus('q'+qi+'_'+(dl>0?'p':'m'))}
+function wzText(qi,el){wzSet(qi,el.value.trim()?el.value:undefined);document.querySelectorAll('[data-tq="'+qi+'"]').forEach(b=>{b.setAttribute('aria-pressed','false');b.classList.remove('on')})}
+const showV=v=>v===NS?'No lo sé':Array.isArray(v)?v.join(', '):typeof v==='number'?String(v):v;
+function qHtml(q,qi,obj){const v=obj[q.k],id='q'+qi,nk=`<button type="button" ${q.ty==='text'?`data-tq="${qi}"`:''} id="${id}_-1" class="opt nk ${v===NS?'on':''}" aria-pressed="${v===NS}" onclick="wzPick(${qi},-1)">No lo sé</button>`;
+ let h=`<fieldset class="q" data-q="${q.k}"><legend class="k">${esc(q.l)}</legend>`;
+ if(q.ty==='text'){const val=v===NS||v===q.nada?'':v||'';h+=`<input type="text" id="${id}" aria-label="${esc(q.l)}" placeholder="${esc(q.ph||'')}" value="${esc(val)}" oninput="wzText(${qi},this)" autocomplete="off"><div class="opts">${q.nada?`<button type="button" data-tq="${qi}" id="${id}_-2" class="opt ${v===q.nada?'on':''}" aria-pressed="${v===q.nada}" onclick="wzPick(${qi},-2)">${esc(q.nada)}</button>`:''}${nk}</div>`}
+ else if(q.ty==='num')h+=`<div class="opts"><div class="step"><button type="button" class="opt" id="${id}_m" aria-label="Menos" onclick="wzNum(${qi},-1)">−</button><b aria-live="polite" aria-label="${esc(q.l)}: ${typeof v==='number'?v:'sin responder'}">${typeof v==='number'?v:'—'}</b><button type="button" class="opt" id="${id}_p" aria-label="Más" onclick="wzNum(${qi},1)">+</button></div>${nk}</div>`;
+ else{const sel=o=>q.ty==='multi'?hasO(v,o):v===o;h+=`<div class="opts">${q.o.map((o,oi)=>`<button type="button" id="${id}_${oi}" class="opt ${sel(o)?'on':''}" aria-pressed="${sel(o)}" onclick="wzPick(${qi},${oi})">${esc(o)}</button>`).join('')}${nk}</div>${q.ty==='multi'?'<p class="hint">Puedes marcar varias.</p>':''}`}
+ return h+'</fieldset>'}
+function renderWz(){const sc=wz.cur==='__sum'?null:wzCur(),L=wzList(),pos=wz.hist.length,tot=Math.max(pos,L.length);
+ const title=wz.mode==='onb'?'Configuración inicial':wz.mode==='fill'?'Completar perfil':'Editar perfil';let body;
+ if(sc){const sub=sc.scope==='h'?'Hogar · '+esc(sc.s.t):`${esc(sc.who)} · ${esc(sc.s.t)}`;
+  body=`<div class="wzh"><div class="k">${sub}</div><div class="pbar" role="progressbar" aria-label="Progreso" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${pos}"><i style="width:${Math.round(pos/tot*100)}%"></i></div></div>
+  ${wz.mode==='fill'&&pos===1&&D&&D.migradoDe?'<p class="box">Plan B se ha actualizado y hay preguntas nuevas. Tu progreso, tus misiones y tu registro se conservan.</p>':''}${wz.mode==='onb'&&pos===1?bigHelp()+'<p class="lead">No damos nada por hecho. Responde lo que sepas; si no lo sabes, marca «No lo sé».</p><p class="box">¿Vienes de otro móvil? <button type="button" class="link" onclick="$(\'#imp0\').click()">Restaurar una copia</button><input type="file" id="imp0" accept="application/json,.json" hidden onchange="importar(this)"></p>':''}${sc.s.h?`<p class="lead">${esc(sc.s.h)}</p>`:''}${sc.s.q.map((q,qi)=>qVisible(q,sc.obj)?qHtml(q,qi,sc.obj):'').join('')}
+  <p class="box dash">«No lo sé» no resta: crea una misión para averiguarlo.</p>`}
+ else{const x=X(wz.draft);body=`<div class="wzh"><div class="k">Resumen</div></div><h2 class="h2">TU HOGAR</h2><p class="lead">Revísalo. Se guarda solo en este dispositivo y puedes cambiarlo cuando quieras.</p>
+  <div class="card"><dl class="dl sm">${HQ.map(s=>s.q.filter(q=>qVisible(q,wz.draft.hogar)&&given(wz.draft.hogar[q.k])).map(q=>`<dt>${esc(q.l)}</dt><dd>${esc(showV(wz.draft.hogar[q.k]))}</dd>`).join('')).join('')}</dl></div>
+  ${wz.draft.personas.map((p,i)=>`<div class="card"><div class="k">Persona ${i+1}</div><h3 class="h3">${esc(pname(p,i))}</h3><p class="sm mut">${esc([ans(p.edad)?p.edad+' años':'',p.med==='Sí'?'medicación':'',ans(p.dieta)?p.dieta:''].filter(Boolean).join(' · '))}</p>${x.ppl[i]?`<p class="sm">Agua: ${x.ppl[i].L} L/día${x.ppl[i].kcal?` · ${x.ppl[i].kcal.toLocaleString('es-ES')} kcal/día`:''}</p>`:''}</div>`).join('')}
+  ${wz.draft.mascotas.map((m,i)=>`<div class="card"><div class="k">Animal ${i+1}</div><h3 class="h3">${esc(mname(m,i))}</h3></div>`).join('')}`}
+ return `<section class="wz" aria-labelledby="wzt"><h1 id="wzt" class="sr">${title}</h1>${body}
+ <div class="row end">${(pos>1||wz.cur==='__sum')?'<button type="button" class="gh" onclick="wzBack()">Atrás</button>':(wz.mode!=='onb'?'<button type="button" class="gh" onclick="wzCancel()">Cancelar</button>':'')}
+ <button type="button" class="btn" onclick="${wz.cur==='__sum'?'wzEnd()':'wzNext()'}">${wz.cur==='__sum'?(wz.mode==='onb'?'Empezar':'Guardar'):(wz.mode==='edit'&&!wzList().some(s=>!wz.hist.includes(s.id))?'Guardar':'Siguiente')}</button></div>
+ ${wz.mode==='fill'?'<p class="center"><button type="button" class="link" onclick="wz=null;render()">Más tarde</button></p>':''}</section>`}
+function wzEnd(){const dr=wz.draft,mode=wz.mode;syncArrays(dr);
+ if(!D||!D.hogar){D={ver:5,inicio:today(),nivel:1,misiones:[],registro:[],repasos:[],aver:[],cfg:(D&&D.cfg)||{},pasados:[],...(D&&D.misiones?D:{})}}
+ const old=unknownsKeys();stampProfile(dr);D.hogar=dr.hogar;D.personas=dr.personas;D.mascotas=dr.mascotas;
+ if(D.personas.length&&D.hogar.nper!==NS)D.hogar.nper=D.personas.length;
+ const now=unknownsKeys();old.forEach(k=>{if(!now.has(k.id)&&!D.aver.some(a=>a.id===k.id))D.aver.push({id:k.id,f:k.f,fecha:today()})});
+ wz=null;makeRepasos();checkLevel();save();if(mode==='onb')tab='p';render();window.scrollTo(0,0);note(mode==='onb'?'Perfil guardado. Tu primera misión te espera.':'Perfil guardado. Misiones y cantidades actualizadas.')}
+
+/* ===================== Repasos ===================== */
+function makeRepasos(){const x=X();D.repasos=D.repasos||[];D.misiones.forEach(m=>{const d=defK(m.key);if(!d||!m.hecha||!visible(d,x))return;const o=objOf(d,x);if(!m.sig){m.sig=o;return}if(m.sig===o)return;
+ D.repasos=D.repasos.filter(r=>r.resuelto||r.mid!==m.id);D.repasos.push({id:Date.now()+m.id,mid:m.id,key:m.key,titulo:'Repaso: '+d.t,texto:o,fecha:today(),resuelto:false})})}
+function ajustado(id){const r=D.repasos.find(q=>q.id===id);if(!r)return;r.resuelto=today();const m=D.misiones.find(q=>q.id===r.mid),d=m&&defK(m.key);if(d)m.sig=objOf(d);save();render()}
+
+/* ===================== Migración desde v3 ===================== */
+const CATMAP={'agua':'agua','comida':'comida','refugio y casa':'seg','energía':'energia','seguridad física':'seg','seguridad digital':'doc','respaldo analógico':'doc','protocolos familiares':'evac','salud y botiquín':'salud','comunicaciones':'com','evacuación':'evac','habilidades':'seg'};
+function migrate(){if(!D)return;
+ if(!D.ver||D.ver<4){const p=D.perfil||{},h={};
+  const nA=+p.adultos||0,nM=+p.menores||0;if(D.perfil&&(nA+nM)>0)h.nper=nA+nM;
+  if(p.mascotas==='Sí')h.animales='Sí';else if(p.mascotas==='No')h.animales='No';
+  if(['Piso','Casa','Otra'].includes(p.vivienda))h.vivienda=p.vivienda;
+  const pl={Bajo:'Bajo',Intermedia:'1.ª a 3.ª',Alta:'4.ª o más'}[p.planta];if(pl)h.planta=pl;if(p.ascensor==='Sí'||p.ascensor==='No')h.ascensor=p.ascensor;
+  const en={Ciudad:'Urbano',Pueblo:'Pueblo','Rural o aislado':'Rural o aislado'}[p.entorno];if(en)h.entorno=en;if(p.entorno==='Isla')h.isla='Sí';
+  if(p.region)h.municipio=p.region;
+  const cm={'Costa (primera línea)':'Costa','Zona baja o junto a barranco/río':'Barranco, río o zona baja','Ladera o monte':'Monte o zona forestal','Bosque o vegetación seca':'Monte o zona forestal','Industria química o puerto':'Industria química o puerto','Nada de esto':'Nada de esto'};
+  if(Array.isArray(p.cerca)&&p.cerca.length){const c2=[...new Set(p.cerca.map(v=>cm[v]).filter(Boolean))];if(c2.length)h.cerca=c2}
+  if(p.cocina==='Vitro/inducción')h.cocina=['Eléctrica'];if(p.agua==='De red')h.agua='Red municipal';
+  if(p.vehiculo==='No')h.vehiculos='Ninguno';else if(p.vehiculo==='Gasolina/diésel')h.vehTipo=['Combustión'];else if(p.vehiculo==='Eléctrico')h.vehTipo=['Eléctrico'];
+  const cl={Calor:'Calor intenso frecuente','Frío':'Frío intenso frecuente',Templado:'Templado'}[p.clima];if(cl)h.clima=cl;
+  const rm={'Incendios forestales':'Incendios forestales','Inundaciones/DANA':'Inundaciones o DANA','Terremotos':'Terremotos','Volcánico':'Volcán','Olas de calor':'Olas de calor','Temporales':'Temporales o huracanes'};
+  if(Array.isArray(p.riesgos)&&p.riesgos.length){const r=[...new Set(p.riesgos.map(v=>rm[v]).filter(Boolean))];if(r.length)h.riesgos=r}
+  const personas=[];for(let i=0;i<nA+nM;i++)personas.push({id:uid()});
+  const reg=(D.registro||[]).map(r=>({...r,frente:r.frente||CATMAP[r.categoria]||'seg',ubtipo:r.ubtipo==='Coche'?'Vehículo':r.ubtipo}));
+  const mis=(D.misiones||[]).map(m=>{const d=defK(m.key);return d?{id:m.id,key:m.key,lvl:d.lv,semana:m.semana||'',hecha:!!m.hecha,fecha:m.fecha,tiempos:{}}:null}).filter(Boolean);
+  const nv=Math.max(1,Math.min(4,+D.nivel||1));
+  D={ver:4,inicio:today(),migradoDe:3,nivel:nv,fin:!!D.fin,pasados:Array.from({length:nv-1},(_,i)=>i+1),hogar:D.perfil?h:undefined,personas,mascotas:[],misiones:mis,registro:reg,
+   repasos:(D.repasos||[]).filter(r=>!r.resuelto).map(r=>({id:r.id,mid:r.mid,key:r.key,titulo:r.titulo,texto:r.texto,fecha:r.fecha,resuelto:false})),aver:[],cfg:{}};
+  if(D.hogar){const x=X();D.misiones.forEach(m=>{const d=defK(m.key);if(m.hecha&&d)m.sig=objOf(d,x)})}}
+ D.misiones=D.misiones||[];D.registro=D.registro||[];D.repasos=D.repasos||[];D.aver=D.aver||[];D.cfg=D.cfg||{};D.personas=D.personas||[];D.mascotas=D.mascotas||[];D.nivel=D.nivel||1;D.pasados=D.pasados||[]}
+
+/* ===================== Diálogos ===================== */
+function ask(html,yes='Sí',no='No'){return new Promise(ok=>{const d=$('#dlg');$('#dlgb').innerHTML=html;$('#dy').textContent=yes;$('#dn').textContent=no||'';$('#dn').hidden=!no;d.showModal();$('#dy').onclick=()=>{d.close();ok(true)};$('#dn').onclick=()=>{d.close();ok(false)};d.oncancel=()=>ok(false)})}
+function note(t){const n=$('#toast');n.textContent=t;n.hidden=false;clearTimeout(note._t);note._t=setTimeout(()=>{n.hidden=true},3800)}
+
+/* ===================== Iconos ===================== */
+const IC={p:'<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h7v7h-7z"/>',m:'<path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4"/><path d="M12 8l4 4-4 4-4-4z"/>',n:'<path d="M4 20h4v-6H4zM10 20h4V9h-4zM16 20h4V4h-4z"/>',r:'<path d="M6 3h9l3 3v15H6z"/><path d="M9 10h6M9 14h6M9 18h3"/>',f:'<path d="M12 4l4 4-4 4-4-4z"/><path d="M5 21l2-6h10l2 6"/>'};
+const svgI=k=>`<svg aria-hidden="true" focusable="false" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">${IC[k]}</svg>`;
+const ROM=['I','II','III','IV'];
+const durTxt=m=>m>=1440?Math.round(m/1440)+' días':m>=120?Math.round(m/60)+' h':m+' min';
+const tyTxt={i:'registro',s:'saber hacer',d:'simulacro',x:'examen'};
+
+/* ===================== Panel ===================== */
+const NAV=[['p','Panel'],['m','Misión'],['n','Niveles'],['g','Guía'],['r','Registro'],['e','Equipo'],['f','Perfil']];
+function radar(S){const cx=120,cy=100,R=62,keys=ATR.map(a=>a[0]),pt=(i,r)=>{const g=-Math.PI/2+i*Math.PI/3;return[(cx+r*Math.cos(g)).toFixed(1),(cy+r*Math.sin(g)).toFixed(1)]};
+ const val=k=>S.cumA[k]?Math.min(1,S.A[k]/S.cumA[k]):0,ring=f=>keys.map((_,i)=>pt(i,R*f).join(',')).join(' ');
+ const poly=keys.map((k,i)=>pt(i,Math.max(.03,val(k))*R).join(',')).join(' ');
+ const anc=['middle','start','start','middle','end','end'];
+ const lab=keys.map((k,i)=>{const[x,y]=pt(i,R+10),b=S.block.includes(k),dy=i===0?-4:i===3?12:4;return `<text x="${x}" y="${(+y+dy).toFixed(1)}" text-anchor="${anc[i]}" class="rl${b?' b':''}">${ATRN[k].toUpperCase()} ${S.A[k]}</text>`}).join('');
+ const desc=ATR.map(([k,l])=>`${l}: ${S.A[k]} XP de ${Math.round(S.cumA[k]||0)} posibles, mínimo ${S.min[k]}${S.block.includes(k)?', bloquea la subida':''}`).join('. ');
+ return `<svg class="radar" viewBox="-22 -4 284 208" role="img" aria-label="Radar de atributos. ${esc(desc)}.">${[1,.66,.33].map(f=>`<polygon points="${ring(f)}" class="rg"/>`).join('')}<polygon points="${ring(.4)}" class="rmin"/>${keys.map((_,i)=>`<line x1="${cx}" y1="${cy}" x2="${pt(i,R)[0]}" y2="${pt(i,R)[1]}" class="rg"/>`).join('')}<polygon points="${poly}" class="rv"/>${lab}</svg>`}
+function weak(S,A){const dr=dueRows();if(dr.length)return{t:`${dr.length} revisi${dr.length>1?'ones vencidas':'ón vencida'}`,s:S.frozen?`${S.frozen} XP congelados hasta que lo compruebes.`:'Compruébalo para mantener tus XP.',go:"go('m')"};
+ if(A.x.Lday&&(A.agua==null||A.agua<3))return{t:A.L?'Agua para menos de 72 h':'Sin agua comprobada',s:`Necesitáis ${A.x.Lday*3} L para 72 h${A.L?`; hay ${Math.round(A.L)} L.`:'.'}`,go:"go('r')"};
+ if(S.block.length){const k=S.block[0];return{t:ATRN[k]+' bajo mínimo',s:`${S.A[k]} de ${S.min[k]} XP para poder subir.`,go:"go('n')"}}
+ const u=unknowns().length;if(u)return{t:`${u} respuesta${u>1?'s':''} «No lo sé»`,s:'Averiguarlas da XP de Resolución.',go:"go('m')"};return null}
+const V={};
+V.p=function(){const S=score(),A=autonomy(),x=A.x,ad=activeDef(),dr=dueRows(),wk=weak(S,A),lvl=S.lv,L=NIV[lvl-1];
+ let h=`<h1 class="sr">Panel</h1><div class="hero"><div><div class="k">Nivel · rango</div><div class="n">${pad2(lvl)}<span class="nu"> · ${esc(L.t)}</span></div><div class="rk">${D.fin?'NIVEL MÁXIMO':'RANGO '+ROM[S.ri]+' · '+RANGOS[S.ri].toUpperCase()}</div></div>
+ <div class="tr"><div class="k">XP total</div><div class="n">${S.T.toLocaleString('es-ES')}</div><div class="mut xs up">${D.fin?'4 niveles completados':S.next?`${S.next} para rango ${ROM[S.ri+1]}`:'Rango máximo · haz el examen'}</div></div></div>`;
+ const un=unanswered();if(un)h+=`<button type="button" class="card inv wide tl" onclick="startWz('fill')"><span class="k">Perfil incompleto</span><b>${un} pregunta${un>1?'s':''} sin responder</b><span class="xs">Respóndelas para adaptar misiones y cantidades.</span></button>`;
+ h+=`<section class="card radarc" aria-labelledby="att"><h2 class="k" id="att">Atributos</h2><div class="rcol">${radar(S)}</div><div class="rtx"><p class="mut xs">Para subir: el mínimo en los seis (línea discontinua) y el examen.</p><p class="blk">${S.block.length?'BLOQUEAN: '+S.block.map(k=>ATRN[k].toUpperCase()).join(' · '):'TODOS EN EL MÍNIMO'}</p></div></section>`;
+ h+=`<section class="card" aria-labelledby="frt"><h2 class="k" id="frt">Frentes de cobertura</h2><ul class="bars">${FR.map(([k,l])=>{const mx=S.cumF[k]||0,p=mx?Math.min(100,Math.round(S.F[k]/mx*100)):0;return `<li><span>${l}</span><span class="bar" role="img" aria-label="${l}: ${p} %"><i style="width:${p}%"></i></span><b>${S.F[k]}</b></li>`}).join('')}</ul></section>`;
+ h+=`<div class="two">${wk?`<button type="button" class="card inv tl" onclick="${wk.go}"><span class="k">▲ Punto débil</span><b>${esc(wk.t)}</b><span class="xs">${esc(wk.s)}</span></button>`:`<div class="card"><div class="k">Punto débil</div><b>Nada urgente</b></div>`}
+ <div class="card"><div class="k">Autonomía</div><div class="n2">${dias(A.agua)}<span class="xs"> días</span></div><div class="mut xs up">Agua · ${x.n?`${x.n} persona${x.n>1?'s':''}`:'personas sin definir'}${x.pets.length?' + '+x.pets.length+' animal'+(x.pets.length>1?'es':''):''}</div></div></div>`;
+ if(ad){const n=numOf(ad);h+=`<button type="button" class="card mis wide" onclick="go('m')"><span class="n2">${ad.ty==='x'?'EX':pad2(n)}</span><span class="mc"><span class="k">Misión de la semana</span><b>${esc(ad.t)}</b><span class="xs mut">${durTxt(ad.min)} · ${tyTxt[ad.ty]}</span></span><span aria-hidden="true">›</span></button>`}
+ h+=`<section class="card" aria-labelledby="aut"><h2 class="k" id="aut">Autonomía real</h2><p class="mut xs">Con lo comprobado en casa (registro) y tu perfil.</p>
+ <div class="three"><div><div class="n3">${dias(A.agua)}</div><div class="k">Agua · días</div><div class="mut xs">${Math.round(A.L)} L · ${x.Lday?x.Lday+' L/día':'? L/día'}</div></div><div><div class="n3">${dias(A.comida)}</div><div class="k">Comida · días</div><div class="mut xs">${A.rac?Math.round(A.rac)+' raciones':''}${A.dh?(A.rac?' + ':'')+A.dh+' días':''}${!A.rac&&!A.dh?'sin datos':''}</div></div><div><div class="n3">${dias(A.energia)}</div><div class="k">Energía · días</div><div class="mut xs">${Math.round(A.wh)} Wh${A.eNeed?' · '+A.eNeed+' Wh/día':''}</div></div></div>
+ ${x.ppl.length||x.pets.length?`<table class="tbl"><caption class="sr">Necesidades por persona</caption><thead><tr><th scope="col">Quién</th><th scope="col">Agua/día</th><th scope="col">Comida/día</th></tr></thead><tbody>${x.ppl.map(q=>`<tr><th scope="row">${esc(q.name)}${q.notes.length?`<span class="xs mut db">${esc(q.notes.join(' · '))}</span>`:''}</th><td>${q.L} L</td><td>${q.kcal==null?'edad ?':q.kcal?q.kcal.toLocaleString('es-ES')+' kcal':'especial'}</td></tr>`).join('')}${x.pets.map((m,i)=>`<tr><th scope="row">${esc(mname(m,i))}</th><td>${petLday(m,x.calor)?petLday(m,x.calor)+' L':'peso ?'}</td><td>su comida</td></tr>`).join('')}</tbody></table><p class="xs mut">Agua: 4 L por persona y día para beber, cocinar e higiene básica (FEMA: 1 galón); mínimo 1,5 L solo para beber (Protección Civil)${x.calor?'; 6 L con calor intenso (Ready.gov: puede doblarse lo que se bebe)':''}. Comida: energía orientativa, no oficial. Animales: unos 60 ml por kg y día, orientativo. Energía: 12 Wh por móvil y 10 Wh de luz al día, orientativo.</p>`:''}</section>`;
+ if(dr.length)h+=`<section class="card"><h2 class="k">Revisiones pendientes · ${dr.length}</h2>${dr.slice(0,4).map(([r,i])=>`<div class="rv"><div><b>${esc(r.recurso)}</b><span class="xs mut db">${expired(r)?'Caducado el '+fmtD(r.caduca):'Revisión '+fmtD(r.revision)} · ${esc(r.ubicacion||'—')}</span></div><button type="button" class="gh sm" onclick="${expired(r)?`edit(${i})`:`revisado(${i})`}">${expired(r)?'Editar':'Revisado hoy'}</button></div>`).join('')}</section>`;
+ if(backupDue())h+=`<section class="card dash"><h2 class="k">Copia de seguridad</h2><p class="sm">${D.cfg.lastBackup?'Tu última copia es del '+fmtD(D.cfg.lastBackup)+'.':'Aún no has hecho ninguna copia.'} Si se borra el navegador o cambias de móvil, sin copia se pierde todo.</p><div class="row"><button type="button" class="gh" onclick="snoozeBackup()">Más tarde</button><button type="button" class="btn" onclick="exportar()">Hacer copia</button></div></section>`;
+ return h};
+
+/* ===================== Misión ===================== */
+function xpRows(d){const w=d.a.length>1?[.6,.4]:[1],B=XPB[d.ty],r=[];
+ if(d.ty==='i'){d.a.forEach((a,i)=>r.push([ATRN[a],'+'+Math.round(B*.4*w[i]),'+'+Math.round(B*.8*w[i])]));r.push(['Frente · '+FRN[d.f],'+'+Math.round(B*.4),'+'+Math.round(B*.8)])}
+ else{const f=d.ty==='s'?.8:1;d.a.forEach((a,i)=>r.push([ATRN[a],'—','+'+Math.round(B*f*w[i])]));r.push(['Frente · '+FRN[d.f],'—','+'+Math.round(B*f)])}
+ if(d.tm)r.push(['Respuesta · tiempos','—','hasta +'+TXP*d.tm.length]);return r}
+V.m=function(){const x=X(),reps=D.repasos.filter(r=>!r.resuelto),dr=dueRows(),uk=unknowns();let h='<h1 class="sr">Misión</h1>';
+ if(!viewKey){
+ if(dr.length)h+=`<section class="card inv"><h2 class="k">Revisiones pendientes · ${dr.length}</h2>${dr.map(([r,i])=>`<div class="rv"><div><b>${esc(r.recurso)}</b><span class="xs db">${expired(r)?'Caducado el '+fmtD(r.caduca)+': repón y edita':(r.revision<today()?'Vencida el ':'Hoy · ')+fmtD(r.revision)} · ${esc(r.ubicacion||'—')}</span></div><button type="button" class="gh inv sm" onclick="${expired(r)?`edit(${i})`:`revisado(${i})`}">${expired(r)?'Editar':'Revisado hoy'}</button></div>`).join('')}<p class="xs">Lo no revisado congela sus XP hasta que lo compruebes.</p></section>`;
+ h+=reps.map(r=>`<section class="card dash"><div class="k">Repaso · tu perfil cambió</div><h3 class="h3">${esc(r.titulo)}</h3><p class="sm">${esc(r.texto)}</p><div class="row"><button type="button" class="gh" onclick="edit(null,${r.mid})">Actualizar registro</button><button type="button" class="gh" onclick="ajustado(${r.id})">Ya está ajustado</button></div></section>`).join('');
+ if(uk.length)h+=`<details class="card"><summary><span class="k">Por averiguar · ${uk.length}</span><span class="xs mut db">Misiones cortas: +5 XP de Resolución cada una</span></summary><ul class="ul">${uk.map(u=>`<li><div><b>${esc(u.l)}</b><span class="xs mut db">${esc(u.who)}</span></div><button type="button" class="gh sm" onclick="startWz('edit',['${u.sid}'])">Responder</button></li>`).join('')}</ul></details>`;}
+ const d=viewKey?defK(viewKey):activeDef();
+ if(!d){const S=score();return h+(D.fin?`<section class="card"><div class="k">Sistema completo</div><h2 class="h2">NIVEL 4 SUPERADO</h2><p>Mantén tus revisiones y repite los simulacros para no perder forma.</p></section>`:`<section class="card inv"><div class="k">Examen superado</div><h2 class="h3">Faltan mínimos para subir</h2><p class="sm">Por debajo: ${S.block.map(k=>ATRN[k]).join(', ')}. Repite cronómetros, marca «Lo he hecho yo» en misiones de registro o revisa lo vencido.</p></section>`)}
+ const ad=activeDef(),isAct=!!ad&&ad.k===d.k,m=inst(d.k)||(isAct?ensureInst(d.k):null),done=!!(m&&m.hecha),ty=d.ty,n=numOf(d,x),ev=m?linked(m.id):[],evOk=ev.filter(validRow),locked=!m&&!isAct,xr=m?mXP(m,d):null;
+ h+=`<article class="mission" aria-labelledby="mt"><div class="mh"><div><div class="k">${done?'Completada':ty==='x'?'Examen del nivel':isAct?'Protocolo activo':'Vista previa'} · Nivel ${d.lv}${m&&m.semana?' · '+esc(m.semana):''}</div><div class="big" aria-hidden="true">${ty==='x'?'EX':pad2(n)}</div><h2 class="mt" id="mt"><span class="sr">${ty==='x'?'Examen':'Misión '+n}: </span>${esc(d.t.toUpperCase())}</h2></div>${viewKey?`<button type="button" class="gh sm" onclick="viewKey=null;render()">Volver</button>`:''}</div>
+ <div class="card"><div class="k">Por qué</div><p>${esc(d.w(x))}</p><hr><div class="k">Objetivo</div><p>${esc(d.o(x))}</p><hr><div class="row sb top"><div><div class="k">Duración</div><div class="n3">${durTxt(d.min)}</div></div><div class="tr"><div class="k">Fuente</div><div class="sm">${d.src.map(esc).join('<br>')}</div></div></div></div>`;
+ h+=`<div class="card"><div class="k">XP que otorga</div><table class="tbl xp"><thead><tr><th scope="col">Atributo / frente</th><th scope="col">${ty==='i'?'Tengo':'<span class="sr">Sin valor</span>'}</th><th scope="col">${ty==='i'||ty==='s'?'Aprendido':'Superado'}</th></tr></thead><tbody>${xpRows(d).map(r=>`<tr><th scope="row">${r[0]}</th><td>${r[1]}</td><td><b>${r[2]}</b></td></tr>`).join('')}</tbody></table>${xr&&(done||xr.a.rsp)?`<p class="xs mut">Ahora aporta ${Math.round(Object.values(xr.a).reduce((s,v)=>s+v,0))} XP${xr.frozen?' · <b>'+Math.round(xr.frozen)+' XP congelados</b>: revisa su prueba':''}.</p>`:''}</div>`;
+ if(d.tm&&!locked)h+=`<div class="card"><div class="k">Cronómetro · Respuesta</div>${d.tm.map(([k,l,obj])=>{const t=m&&m.tiempos[k],r=run&&run.key===d.k&&run.t===k;return `<div class="tm"><div><b>${esc(l)}</b><span class="xs mut db">Objetivo ${mmss(obj)} · ${t?'mejor '+mmss(t.best)+' ('+Math.round(tScore(t.best,obj)*100)+' %)':'sin medir'}</span></div><div class="tmr"><span class="clock" id="clk_${k}">${r?mmss(Math.round((Date.now()-run.t0)/1000)):t?mmss(t.last):'0 s'}</span><button type="button" class="${r?'btn':'gh'} sm" onclick="tmToggle('${d.k}','${k}')" aria-label="${r?'Parar':'Iniciar'} cronómetro: ${esc(l)}">${r?'Parar':t?'Repetir':'Iniciar'}</button></div></div>`}).join('')}<p class="xs mut">Mide de verdad: Iniciar al dar la señal, Parar al terminar. Se guarda tu mejor tiempo.</p></div>`;
+ if(ty==='i'&&m)h+=`<div class="card"><div class="k">Prueba en el registro</div><p class="sm">${evOk.length?`${evOk.length} fila${evOk.length>1?'s':''} comprobada${evOk.length>1?'s':''}.`:ev.length?'Hay filas, pero sin comprobar o vencidas.':'Necesita una fila vinculada: Tengo con cantidad, ubicación y fecha, o Hecho.'}</p>${ev.map(r=>`<p class="xs mut">· ${esc(r.recurso)} · ${esc(r.estado)}${r.cantNum?' · '+esc(r.cantNum)+' '+esc(r.unidad||''):''}${validRow(r)?'':' · sin validar'}</p>`).join('')}</div>`;
+ if(locked)h+=`<p class="box dash">Se abre cuando llegues a ella.${d.lv>D.nivel?' Antes, supera el examen del nivel '+(d.lv-1)+'.':''}</p>`;
+ else if(!done){if(ty==='i')h+=`<div class="row"><button type="button" class="gh" onclick="edit(null,${m.id})">+ Prueba al registro</button><button type="button" class="gh ${m.aprendido?'on':''}" aria-pressed="${!!m.aprendido}" onclick="hechoYo(${m.id})">Lo he hecho yo</button></div><button type="button" class="btn wide" onclick="completar(${m.id})">Completar misión</button>`;
+  else if(ty==='s')h+=`<button type="button" class="btn wide" onclick="completar(${m.id})">Lo he hecho yo · completar</button>`;
+  else h+=`<button type="button" class="btn wide" onclick="completar(${m.id})">${ty==='x'?'Examen superado':'Simulacro superado'}</button>`}
+ else{h+=`<p class="box">Completada el ${fmtD(m.fecha)}.${ty==='i'&&!m.aprendido?' Si ya lo has usado tú, márcalo para subir a Aprendido.':''}</p>`;if(ty==='i')h+=`<div class="row">${!m.aprendido?`<button type="button" class="gh" onclick="hechoYo(${m.id})">Lo he hecho yo</button>`:''}<button type="button" class="gh" onclick="edit(null,${m.id})">+ Prueba al registro</button></div>`}
+ return h+`</article><p class="center xs mut">Una misión por semana basta. Las semanas sin misión no restan.</p>`};
+
+/* ===================== Niveles ===================== */
+V.n=function(){const x=X(),S=score(),ad=activeDef();return '<h1 class="sr">Niveles</h1>'+NIV.map((L,i)=>{const lv=i+1,defs=levelDefs(lv,x),passed=D.pasados.includes(lv)||(D.fin&&lv===4),on=lv===D.nivel&&!passed,dn=defs.filter(d=>isDone(d.k)).length;
+ return `<section class="card lvl ${on?'on':''} ${!on&&!passed?'lock':''}" aria-labelledby="lv${lv}"><div class="row sb top"><div><div class="k">Nivel ${pad2(lv)} · ${passed?'Superado':on?'Activo':'Bloqueado'}</div><h2 class="h2" id="lv${lv}">${esc(L.t.toUpperCase())}</h2>${L.adv?'<span class="tag">Avanzado · no oficial</span>':''}</div><div class="n2" aria-label="${dn} de ${defs.length} misiones">${dn}<span class="xs">/${defs.length}</span></div></div>
+ <p class="sm">${esc(L.o)}</p><p class="xs mut">Base: ${esc(L.src)}</p><div class="bar" aria-hidden="true"><i style="width:${Math.round(dn/Math.max(1,defs.length)*100)}%"></i></div>
+ <p class="xs mut">${defs.length} misiones de 15–60 min (los simulacros, más). A una por semana: unos ${Math.round(defs.length/4.33*10)/10} meses.</p>
+ ${on?`<div class="mins"><div class="k">Mínimos para subir</div>${ATR.map(([k,l])=>`<div class="${S.block.includes(k)?'b':''}"><span>${S.block.includes(k)?'▲ ':''}${l}</span><span>${S.A[k]} / ${S.min[k]}</span></div>`).join('')}<p class="xs mut">Rangos del nivel: ${RANGOS.map((r,j)=>ROM[j]+' '+r).join(' · ')}.</p></div>`:''}
+ <ol class="ml">${defs.map((d,j)=>{const m=inst(d.k),st=m&&m.hecha?(mXP(m,d).frozen?'congelada':'hecha'):ad&&ad.k===d.k?'activa':'';return `<li class="${st}"><button type="button" onclick="viewKey='${d.k}';tab='m';render();window.scrollTo(0,0)"><span class="num">${d.ty==='x'?'EX':pad2(j+1)}</span><span class="tt">${esc(d.t)}</span><span class="st">${st==='hecha'?'✓ hecha':st==='activa'?'▶ activa':st==='congelada'?'congelada':''}</span></button></li>`}).join('')}</ol></section>`}).join('')+`<p class="xs mut center">Niveles 1 y 2: recomendaciones oficiales. Nivel 3: extensión de esas guías. Nivel 4: avanzado y no oficial.</p>`};
+
+/* ===================== Registro ===================== */
+const RF=[['recurso','Recurso','text'],['frente','Frente',FR.map(f=>f[0])],['estado','Estado',ESTADOS],['cantNum','Cantidad (número)','num'],['unidad','Unidad',UNIDADES],['cantidad','Cantidad (texto libre)','text'],['modelo','Modelo o capacidad','text'],['ubicacion','Ubicación exacta','text'],['ubtipo','Dónde está',UBT],['carga','Estado o carga','text'],['sabe','¿Sabes usarlo?',['Sí','No']],['confirmado','Fecha de confirmación','date'],['caduca','Caducidad (si tiene)','date'],['revision','Siguiente revisión','date']];
+V.r=function(){let h=`<h1 class="sr">Registro</h1><button type="button" class="btn wide" onclick="edit()">+ Añadir fila</button>`;
+ if(!D.registro.length)return h+`<div class="card center"><h2 class="h3">REGISTRO VACÍO</h2><p class="sm mut">Añade lo que puedas demostrar. Con cantidad numérica y unidad se calcula tu autonomía.</p></div>`;
+ return h+FR.map(([fk,fl])=>{const rows=D.registro.map((r,i)=>[r,i]).filter(([r])=>(r.frente||'seg')===fk);if(!rows.length)return '';return `<h2 class="k sec">${fl} · ${rows.length}</h2>`+rows.map(([r,i])=>{const bad=due(r)||expired(r);return `<article class="card ${bad?'inv':''}"><div class="row sb"><h3 class="h3">${esc(r.recurso)}</h3><span class="led">${esc(r.estado||'—')}</span></div>${bad?`<p class="xs"><b>▲ ${expired(r)?'CADUCADO':'REVISIÓN VENCIDA'}</b></p>`:''}
+ <dl class="dl sm"><dt>Cantidad</dt><dd>${esc(r.cantNum?r.cantNum+' '+(r.unidad||''):r.cantidad||'—')}</dd><dt>Ubicación</dt><dd>${esc(r.ubicacion||'—')}${r.ubtipo?' · '+esc(r.ubtipo):''}</dd><dt>Revisión</dt><dd>${fmtD(r.revision)}</dd>${r.caduca?`<dt>Caduca</dt><dd>${fmtD(r.caduca)}</dd>`:''}${r.mision?`<dt>Misión</dt><dd>${esc((defK((D.misiones.find(m=>m.id===+r.mision)||{}).key)||{}).t||'—')}</dd>`:''}</dl>
+ ${!isMine(r)?`<p class="xs mut">Personal de ${esc(ownerName(r._o))} · solo lectura</p></article>`:`<div class="row"><button type="button" class="gh ${bad?'inv':''} sm" onclick="edit(${i})" aria-label="Editar ${esc(r.recurso)}">Editar</button>${due(r)&&!expired(r)?`<button type="button" class="gh inv sm" onclick="revisado(${i})">Revisado hoy</button>`:''}<button type="button" class="gh ${bad?'inv':''} sm" onclick="del(${i})" aria-label="Borrar ${esc(r.recurso)}">Borrar</button></div></article>`}`}).join('')}).join('')};
+
+/* ===================== Perfil ===================== */
+function sumBlock(s,obj){return s.q.filter(q=>qVisible(q,obj)).map(q=>`<dt>${esc(q.l)}</dt><dd class="${obj[q.k]===NS?'nk':''}${!given(obj[q.k])?' un':''}">${given(obj[q.k])?esc(showV(obj[q.k])):'Sin responder'}</dd>`).join('')}
+V.f=function(){const H=D.hogar||{},st=isStandalone();
+ return `<h1 class="sr">Perfil</h1><h2 class="k sec">Hogar</h2>${HQ.filter(s=>s.only!=='onb').map(s=>`<section class="card"><div class="row sb"><h3 class="h3">${esc(s.t)}</h3><button type="button" class="gh sm" onclick="startWz('edit',['h:${s.id}'])" aria-label="Editar ${esc(s.t)}">Editar</button></div><dl class="dl sm">${sumBlock(s,H)}</dl></section>`).join('')}
+ <h2 class="k sec">Personas · ${D.personas.length}</h2>${D.personas.map((p,i)=>`<section class="card"><div class="row sb"><h3 class="h3">${esc(pname(p,i))}</h3>${isMine(p)?`<div class="row"><button type="button" class="gh sm" onclick="editPersona('${p.id}')" aria-label="Editar ficha de ${esc(pname(p,i))}">Editar</button><button type="button" class="gh sm" onclick="quitar('p','${p.id}')" aria-label="Quitar a ${esc(pname(p,i))}">Quitar</button></div>`:`<span class="led">Solo lectura</span>`}</div>${D.yo===p.id?'<p class="xs mut">Eres tú en este móvil.</p>':''}${!isMine(p)?`<p class="xs mut">La edita ${esc(ownerName(p._o))} en su móvil.</p>`:''}<dl class="dl sm">${PQ.filter(s=>!s.c||s.c(p)).map(s=>sumBlock(s,p)).join('')}</dl></section>`).join('')}<button type="button" class="gh wide" onclick="addPersona()">+ Añadir persona</button>
+ <h2 class="k sec">Animales · ${D.mascotas.length}</h2>${D.mascotas.map((m,i)=>`<section class="card"><div class="row sb"><h3 class="h3">${esc(mname(m,i))}</h3><div class="row"><button type="button" class="gh sm" onclick="startWz('edit',['m:${m.id}:m1'])" aria-label="Editar ${esc(mname(m,i))}">Editar</button><button type="button" class="gh sm" onclick="quitar('m','${m.id}')" aria-label="Quitar ${esc(mname(m,i))}">Quitar</button></div></div><dl class="dl sm">${sumBlock(MQ[0],m)}</dl></section>`).join('')}<button type="button" class="gh wide" onclick="addMascota()">+ Añadir animal</button>
+ <h2 class="k sec">Tus datos</h2><button type="button" class="card tl wide" onclick="sub='datos';render();window.scrollTo(0,0)"><span class="k">Privacidad</span><b>Dónde están tus datos y qué se comparte</b><span class="xs mut">Todo se guarda solo en este móvil. Sin cuentas ni servidores.</span></button>
+ <h2 class="k sec">Ajustes</h2>${drillSettings()}<section class="card"><div class="row sb"><div><b>Letra grande</b><p class="xs mut">Para leer con la pantalla al mínimo.</p></div><button type="button" class="sw ${D.cfg.big?'on':''}" role="switch" aria-checked="${!!D.cfg.big}" aria-label="Letra grande" onclick="toggleBig()"><i></i></button></div><hr><p class="xs mut">Ahorro de batería: fondo negro, sin animaciones ni vibración. Respeta «Reducir movimiento» del sistema.</p></section>
+ <h2 class="k sec">Copia de seguridad</h2><section class="card"><p class="sm">Guarda todo en un archivo JSON. Sin nube: tú eliges dónde (Archivos, correo, ordenador).</p><p class="xs mut">Última copia: ${D.cfg.lastBackup?fmtD(D.cfg.lastBackup):'nunca'}.</p><div class="row"><button type="button" class="btn" onclick="exportar()">Exportar</button><button type="button" class="gh" onclick="$('#imp').click()">Importar</button></div><input type="file" id="imp" accept="application/json,.json" hidden onchange="importar(this)"></section>
+ <h2 class="k sec">Sistema</h2><section class="card"><p class="sm"><b>PLAN B.</b> Sin IA. Sin nube. Sin cuentas. Tus datos no salen de este dispositivo.</p><p class="xs mut">${st?'Abierta como app instalada.':'Abierta en una pestaña del navegador: lo que guardes aquí no pasa a la app instalada.'} · Versión 5</p><button type="button" class="gh sm" onclick="wipe()">Borrar todos mis datos</button></section>`};
+
+/* ===================== Acciones ===================== */
+function editPersona(id){startWz('edit',['p1','p2','p3','p3n'].map(s=>'p:'+id+':'+s))}
+function addPersona(){const p={id:uid()};D.personas.push(p);D.hogar.nper=D.personas.length;save();startWz('edit',['p1','p2','p3','p3n'].map(s=>'p:'+p.id+':'+s))}
+function addMascota(){const m={id:uid()};D.mascotas.push(m);D.hogar.animales='Sí';D.hogar.nmasc=D.mascotas.length;save();startWz('edit',['m:'+m.id+':m1'])}
+async function quitar(t,id){const arr=t==='p'?D.personas:D.mascotas,i=arr.findIndex(q=>q.id===id),nm=t==='p'?pname(arr[i],i):mname(arr[i],i);
+ if(!await ask(`<h2>¿Quitar a ${esc(nm)}?</h2><p>Se borra su ficha y se recalculan misiones y cantidades.</p>`,'Quitar','Cancelar'))return;
+ tombstone(t==='p'?'personas':'mascotas',arr[i]);arr.splice(i,1);if(t==='p')D.hogar.nper=D.personas.length||undefined;else{D.hogar.nmasc=D.mascotas.length||undefined;if(!D.mascotas.length)D.hogar.animales='No'}makeRepasos();save();render()}
+function toggleBig(){D.cfg.big=!D.cfg.big;save();applyCfg();render()}
+function applyCfg(){document.documentElement.classList.toggle('big',!!(D&&D.cfg&&D.cfg.big))}
+function revisado(i){const r=D.registro[i];touch(r);r.confirmado=today();r.revision=revDefault({...r,revision:''});save();render();note('Revisión anotada. Sus XP vuelven a contar.')}
+function tmToggle(k,t){if(run&&run.key===k&&run.t===t){const s=Math.max(1,Math.round((Date.now()-run.t0)/1000)),m=ensureInst(k),p=m.tiempos[t];m.tiempos[t]={best:p?Math.min(p.best,s):s,last:s,fecha:today()};run=null;clearInterval(runTick);save();render();note('Tiempo: '+mmss(s));return}
+ if(run){note('Ya hay un cronómetro en marcha.');return}run={key:k,t,t0:Date.now()};clearInterval(runTick);runTick=setInterval(()=>{const e=document.getElementById('clk_'+t);if(e&&run)e.textContent=mmss(Math.round((Date.now()-run.t0)/1000))},1000);render()}
+async function hechoYo(id){const m=D.misiones.find(q=>q.id===id);if(m.aprendido){m.aprendido=false;save();render();return}
+ if(await ask('<h2>¿Lo has hecho tú?</h2><p>Solo cuenta si lo has usado o hecho tú mismo, no si te lo han explicado. Sube la misión a <b>Aprendido</b>.</p>')){m.aprendido=true;save();render()}}
+async function completar(id){const m=D.misiones.find(q=>q.id===id),d=defK(m.key),x=X();
+ if(d.ty==='i'&&!linked(id).some(validRow)){if(await ask(`<h2>Falta la prueba</h2><p>Solo cuenta lo demostrado. Para cerrar «${esc(d.t)}» necesitas una fila del registro vinculada en estado <b>Tengo</b> (con cantidad, ubicación y fecha) o <b>Hecho</b>, sin revisión vencida.</p><p>¿La añades ahora?</p>`,'Añadir','Ahora no'))edit(null,id);return}
+ if(d.tm&&(d.ty==='x'||d.ty==='d')){const miss=d.tm.filter(([k])=>!m.tiempos[k]);if(miss.length){await ask(`<h2>Faltan tiempos</h2><p>Un simulacro se demuestra con tiempos reales. Mide: ${miss.map(t=>esc(t[1])).join(', ')}.</p>`,'Entendido',null);return}}
+ if(d.ty==='s'){if(!await ask(`<h2>¿Lo has hecho tú?</h2><p>Es una misión de saber hacer: solo cuenta si lo has hecho tú. Se registra como <b>Aprendido</b>, con revisión en 12 meses.</p>`))return;
+  D.registro.push(touch({id:uid(),recurso:d.t,frente:d.f,estado:'Aprendido',ubtipo:'Casa',sabe:'Sí',confirmado:today(),revision:plusM(today(),12),mision:id,misionKey:m.key,_o:D.dev}))}
+ else if(!await ask(d.ty==='i'?'<h2>¿Misión completada?</h2><p>Tiene prueba en el registro. Ciérrala solo si lo has comprobado.</p>':'<h2>¿Simulacro superado?</h2><p>Ciérralo si lo habéis hecho de verdad y has anotado qué mejorar.</p>'))return;
+ m.hecha=true;m.fecha=today();m.sig=objOf(d,x);viewKey=null;const up=checkLevel();save();render();window.scrollTo(0,0);note(up?(D.fin?'Nivel 4 superado.':'Nivel superado. Empieza el nivel '+D.nivel+'.'):'Misión completada.')}
+function edit(i,mid){const m=mid!=null?D.misiones.find(q=>q.id===mid):null,d=m&&defK(m.key);const r=i==null?{frente:d?d.f:'',confirmado:today(),mision:mid??''}:D.registro[i];
+ const opts=D.misiones.filter(q=>defK(q.key)).map(q=>`<option value="${q.id}" ${+r.mision===q.id?'selected':''}>N${q.lvl} · ${esc(defK(q.key).t)}</option>`).join('');
+ const fld=([k,l,o])=>{const id='f_'+k,v=r[k]??'';if(Array.isArray(o))return `<label for="${id}">${l}</label><select id="${id}"><option value="">— Elige —</option>${o.map(x=>`<option value="${esc(x)}" ${v===x?'selected':''}>${esc(k==='frente'?FRN[x]:x)}</option>`).join('')}</select>`;return `<label for="${id}">${l}</label><input id="${id}" type="${o==='date'?'date':o==='num'?'number':'text'}" ${o==='num'?'inputmode="decimal" step="any" min="0"':''} value="${esc(v)}">`};
+ $('#nav').hidden=true;document.body.classList.add('nonav');
+ $('#v').innerHTML=`<section class="form" aria-labelledby="ft"><div class="k">Registro</div><h1 class="h2" id="ft">${i==null?'NUEVA FILA':'EDITAR FILA'}</h1><label for="f_mision">Misión vinculada</label><select id="f_mision"><option value="">— Ninguna —</option>${opts}</select>${RF.map(fld).join('')}
+ <p class="xs mut">Tengo exige cantidad, ubicación exacta y fecha de confirmación. Pon cantidad numérica y unidad (L, raciones, Wh…) para calcular la autonomía. Si dejas la revisión vacía se calcula sola: 6 meses (agua, comida, pilas), 12 meses documentos y lo aprendido, la medicación por su caducidad.</p>
+ <div class="row end"><button type="button" class="gh" onclick="render()">Cancelar</button><button type="button" class="btn" onclick="sv(${i??'null'})">Guardar</button></div></section>`;window.scrollTo(0,0);$('#f_recurso').focus()}
+async function sv(i){const r={};RF.forEach(([k])=>r[k]=$('#f_'+k).value.trim());r.mision=$('#f_mision').value?+$('#f_mision').value:'';
+ if(!r.recurso)return note('Falta el recurso.');if(!r.frente)return note('Elige el frente.');if(!r.estado)return note('Elige el estado.');
+ if(r.estado==='Tengo'&&(!(r.cantidad||r.cantNum)||!r.ubicacion||!r.confirmado))return note('Para «Tengo» hacen falta cantidad, ubicación exacta y fecha de confirmación.');
+ if(r.cantNum&&!r.unidad)return note('Elige la unidad de la cantidad.');
+ if(!r.revision)r.revision=revDefault(r);
+ const old=i==null?null:D.registro[i];if(old)Object.keys(old).forEach(k=>{if(!(k in r))r[k]=old[k]});
+ if(!r.id)r.id=uid();r.misionKey=r.mision?keyOfMid(+r.mision)||'':'';if(r.estado==='Aprendido')r._o=r._o||D.dev;else if(r._o===D.dev)delete r._o;touch(r);
+ if(i==null)D.registro.push(r);else D.registro[i]=r;
+ if(r.mision)D.repasos.forEach(x=>{if(!x.resuelto&&x.mid===r.mision){x.resuelto=today();const m=D.misiones.find(q=>q.id===x.mid),d=m&&defK(m.key);if(d)m.sig=objOf(d)}});
+ save();render();note('Guardado.')}
+async function del(i){if(await ask(`<h2>¿Borrar «${esc(D.registro[i].recurso)}»?</h2><p>Si era la prueba de una misión, sus XP dejan de contar.</p>`,'Borrar','Cancelar')){tombstone('registro',D.registro[i]);D.registro.splice(i,1);save();render()}}
+async function wipe(){if(!await ask('<h2>¿Borrar todos tus datos?</h2><p><b>No se puede deshacer.</b> Se borran de este móvil tu perfil, las fichas, misiones, registro, Unidad, amigos y simulacros. No afecta a lo que ya hayas compartido con otros.</p><p>Exporta antes una copia si la quieres.</p><label for="wipeIn" class="k">Escribe BORRAR para confirmar</label><input id="wipeIn" autocomplete="off" autocapitalize="characters">','Borrar todo','Cancelar'))return;if(($('#wipeIn').value||'').trim().toUpperCase()!=='BORRAR'){note('No se ha borrado nada: escribe BORRAR para confirmar.');return}{sub=null;LS.removeItem(KEY);LS.removeItem('ohara');D=null;wz=null;startWz('onb')}}
+
+/* ===================== Copia de seguridad ===================== */
+function backupDue(){if(!D.misiones.some(m=>m.hecha)&&D.registro.length<3)return false;const sn=D.cfg.backupSnooze;if(sn&&sn>today())return false;const last=D.cfg.lastBackup;return !last||last<=ymd(new Date(Date.now()-30*864e5))}
+function snoozeBackup(){const x=new Date();x.setDate(x.getDate()+7);D.cfg.backupSnooze=ymd(x);save();render()}
+async function exportar(){const name='planb-copia-'+today()+'.json',json=JSON.stringify({app:'planb',ver:5,fecha:new Date().toISOString(),data:D},null,2),blob=new Blob([json],{type:'application/json'});let shared=false;
+ try{const f=new File([blob],name,{type:'application/json'});if(navigator.canShare&&navigator.canShare({files:[f]})&&/iPhone|iPad|Android/.test(navigator.userAgent)){await navigator.share({files:[f],title:'Copia de Plan B'});shared=true}}catch(e){if(e&&e.name==='AbortError')return}
+ if(!shared){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}
+ D.cfg.lastBackup=today();delete D.cfg.backupSnooze;save();render();note('Copia creada: '+name)}
+function importar(el){const f=el.files[0];el.value='';if(!f)return;f.text().then(async t=>{let x;try{x=JSON.parse(t)}catch(e){return note('Archivo no válido.')}const data=x&&x.app==='planb'&&x.data?x.data:x;
+ if(!data||typeof data!=='object'||!(Array.isArray(data.registro)||data.hogar||data.perfil))return note('Ese archivo no es una copia de Plan B.');
+ if(!await ask(`<h2>¿Sustituir todos los datos?</h2><p>Se reemplaza lo de este dispositivo por la copia${x.fecha?' del '+esc(fmtD(String(x.fecha).slice(0,10))):''}.</p>`,'Sustituir','Cancelar'))return;
+ D=data;migrate();save();applyCfg();wz=null;askedFill=false;boot();note('Copia restaurada.')})}
+
+/* ===================== Modo emergencia ===================== */
+function where(keys,re){if(!D||!D.registro)return[];const ids=new Set(D.misiones.filter(m=>keys.includes(m.key)).map(m=>m.id));const ks=new Set(keys);return D.registro.filter(r=>r.estado!=='Deseo'&&r.ubicacion&&(ids.has(+r.mision)||ks.has(r.misionKey)||(re&&re.test(r.recurso||'')))).map(r=>`${r.recurso}: ${r.ubicacion}`)}
+/* v5: EMG/openEmg/renderEmg se sustituyen por los árboles «Tengo un problema» (app5.js). */
+
+/* ===================== Instalación ===================== */
+const isStandalone=()=>!!(navigator.standalone||matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches||matchMedia('(display-mode: minimal-ui)').matches);
+function platform(){const ua=navigator.userAgent||'',ios=/iPhone|iPad|iPod/.test(ua)||(/Macintosh/.test(ua)&&navigator.maxTouchPoints>1),and=/Android/.test(ua);
+ if(ios)return /CriOS|FxiOS|EdgiOS|OPiOS|GSA\//.test(ua)?'ios-other':'ios-safari';
+ if(and)return /SamsungBrowser/.test(ua)?'and-samsung':/Firefox/.test(ua)?'and-firefox':/Chrome/.test(ua)&&!/OPR|EdgA|; wv\)/.test(ua)?'and-chrome':'and-other';return 'other'}
+function renderGate(){const pf=platform();let steps;
+ if(pf==='ios-safari')steps=['Pulsa <b>Compartir</b>: el cuadrado con la flecha hacia arriba.','Elige <b>Añadir a pantalla de inicio</b>. Si no aparece, desliza la lista hacia abajo.','Pulsa <b>Añadir</b> y abre Plan B desde el <b>icono</b> nuevo.'];
+ else if(pf==='ios-other')steps=['Este navegador no puede instalar apps en iPhone.','Copia la dirección y ábrela en <b>Safari</b>.','En Safari: <b>Compartir</b> → <b>Añadir a pantalla de inicio</b> → abre desde el icono.'];
+ else if(pf==='and-chrome')steps=deferredPrompt?['Pulsa <b>Instalar</b> aquí abajo.','Abre Plan B desde el <b>icono</b> nuevo.']:['Abre el menú <b>⋮</b>, arriba a la derecha.','Elige <b>Instalar app</b> o <b>Añadir a pantalla de inicio</b>.','Abre Plan B desde el <b>icono</b> nuevo.'];
+ else if(pf==='and-samsung')steps=['Abre el menú <b>≡</b>, abajo.','Elige <b>Añadir página a</b> → <b>Pantalla de inicio</b>.','Abre Plan B desde el <b>icono</b>.'];
+ else if(pf==='and-firefox')steps=['Abre el menú <b>⋮</b>.','Elige <b>Instalar</b> o <b>Añadir a pantalla de inicio</b>.','Abre Plan B desde el <b>icono</b>.'];
+ else if(pf==='and-other')steps=['Puede que este navegador no permita instalar apps.','Abre esta dirección en <b>Chrome</b>.','Menú <b>⋮</b> → <b>Instalar app</b>, y abre desde el icono.'];
+ else steps=['Plan B está pensada para móvil.','Abre esta dirección en tu iPhone (Safari) o Android (Chrome).','Instálala en la pantalla de inicio y ábrela desde el icono.'];
+ return `${bigHelp()}<section class="gate" aria-labelledby="gt"><div class="k">Antes de empezar</div><h1 class="h2" id="gt">INSTALA PLAN B</h1><p class="lead">Estás en una pestaña del navegador. Instálala en la pantalla de inicio para que funcione sin conexión y guarde tus datos en la app.</p>
+ <ol class="steps lg">${steps.map(s=>`<li>${s}</li>`).join('')}</ol>${pf==='and-chrome'&&deferredPrompt?'<button type="button" class="btn wide" onclick="installNow()">Instalar</button>':''}
+ <div class="card inv"><div class="k">▲ Importante</div><p class="sm">Lo que guardes en esta pestaña <b>no pasa</b> a la app instalada: cada una guarda sus datos por separado.</p></div>
+ <p class="center"><button type="button" class="link" onclick="sessionStorage.setItem('planbGate','1');boot()">Continuar en el navegador (solo para pruebas)</button></p></section>`}
+async function installNow(){if(!deferredPrompt)return;deferredPrompt.prompt();try{await deferredPrompt.userChoice}catch(e){}deferredPrompt=null;render()}
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;if(gateOn())render()});
+addEventListener('appinstalled',()=>{deferredPrompt=null});
+const gateOn=()=>!isStandalone()&&!sessionStorage.getItem('planbGate');
+
+/* ===================== Render ===================== */
+function header(){$('#sub').textContent=D&&D.hogar&&!wz?(D.fin?'Nivel 4 · completo':`Nivel ${D.nivel} · ${['72 h','2 sem.','1 mes','3+ meses'][D.nivel-1]}`):''}
+function render(){header();const v=$('#v'),nav=$('#nav');
+ if(gateOn()){v.innerHTML=renderGate();nav.hidden=true;document.body.classList.add('nonav');return}
+ if(wz||!D||!D.hogar){if(!wz){startWz('onb');return}v.innerHTML=renderWz();nav.hidden=true;document.body.classList.add('nonav');return}
+ nav.hidden=false;document.body.classList.remove('nonav');
+ const ad=activeDef();if(ad)ensureInst(ad.k);
+ v.innerHTML=V[tab]();nav.innerHTML=NAV.map(([k,l])=>`<button type="button" class="${k===tab?'on':''}" ${k===tab?'aria-current="page"':''} onclick="go('${k}')">${svgI(k)}<span>${l}</span></button>`).join('')}
+function go(k){tab=k;viewKey=null;sub=null;try{history.replaceState(null,'','#'+({p:'panel',m:'mision',n:'niveles',g:'guia',r:'registro',e:'equipo',f:'perfil'})[k])}catch(e){}window.scrollTo(0,0);render();const h=$('#v h1');if(h){h.tabIndex=-1;h.focus({preventScroll:true})}}
+function boot(){migrate();if(D&&D.hogar){save();applyCfg();if(!askedFill&&!gateOn()&&unanswered()){askedFill=true;startWz('fill');return}}render()}
+if('serviceWorker'in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+/* boot() se llama al final de app5.js */
