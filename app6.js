@@ -207,7 +207,8 @@ if(navigator.storage&&navigator.storage.persist){navigator.storage.persisted().t
 if('serviceWorker'in navigator){navigator.serviceWorker.addEventListener('controllerchange',()=>{});
  addEventListener('load',()=>{navigator.serviceWorker.getRegistration().then(reg=>{if(!reg)return;const mark=()=>{if(navigator.serviceWorker.controller){swNew=true;if(D&&D.hogar&&tab==='p'&&!wz)render()}};
   if(reg.waiting)mark();reg.addEventListener('updatefound',()=>{const w=reg.installing;if(w)w.addEventListener('statechange',()=>{if(w.state==='installed')mark()})})}).catch(()=>{})})}
-boot();
+/* boot() se llama al final de app7.js */
+
 
 /* ===================== Vuelta del QR: que el otro móvil también te vea ===================== */
 async function vueltaAsk(al){const n=esc(al||'el otro móvil');

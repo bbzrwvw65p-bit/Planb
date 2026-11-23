@@ -246,7 +246,7 @@ function renderWz(){const sc=wz.cur==='__sum'?null:wzCur(),L=wzList(),pos=wz.his
  <button type="button" class="btn" onclick="${wz.cur==='__sum'?'wzEnd()':'wzNext()'}">${wz.cur==='__sum'?(wz.mode==='onb'?'Empezar':'Guardar'):(wz.mode==='edit'&&!wzList().some(s=>!wz.hist.includes(s.id))?'Guardar':'Siguiente')}</button></div>
  ${wz.mode==='fill'?'<p class="center"><button type="button" class="link" onclick="wz=null;render()">Más tarde</button></p>':''}</section>`}
 function wzEnd(){const dr=wz.draft,mode=wz.mode;syncArrays(dr);
- if(!D||!D.hogar){D={ver:6,inicio:today(),nivel:1,misiones:[],registro:[],repasos:[],aver:[],cfg:(D&&D.cfg)||{},pasados:[],...(D&&D.misiones?D:{})}}
+ if(!D||!D.hogar){D={ver:7,v7:{at:today()},inicio:today(),nivel:1,misiones:[],registro:[],repasos:[],aver:[],cfg:(D&&D.cfg)||{},pasados:[],...(D&&D.misiones?D:{})}}
  const old=unknownsKeys();stampProfile(dr);D.hogar=dr.hogar;D.personas=dr.personas;D.mascotas=dr.mascotas;D.vehiculos=dr.vehiculos||[];
  if(D.personas.length&&D.hogar.nper!==NS)D.hogar.nper=D.personas.length;
  const now=unknownsKeys();old.forEach(k=>{if(!now.has(k.id)&&!D.aver.some(a=>a.id===k.id))D.aver.push({id:k.id,f:k.f,fecha:today()})});
@@ -296,11 +296,11 @@ const tyTxt={i:'registro',s:'saber hacer',d:'simulacro',x:'examen'};
 
 /* ===================== Panel ===================== */
 const NAV=[['p','Panel'],['m','Misión'],['n','Niveles'],['g','Guía'],['r','Registro'],['e','Equipo'],['f','Perfil']];
-function radar(S){const cx=120,cy=100,R=62,keys=ATR.map(a=>a[0]),pt=(i,r)=>{const g=-Math.PI/2+i*Math.PI/3;return[(cx+r*Math.cos(g)).toFixed(1),(cy+r*Math.sin(g)).toFixed(1)]};
+function radar(S){const cx=120,cy=100,R=62,keys=ATR.map(a=>a[0]),pt=(i,r)=>{const g=-Math.PI/2+i*2*Math.PI/keys.length;return[(cx+r*Math.cos(g)).toFixed(1),(cy+r*Math.sin(g)).toFixed(1)]};
  const val=k=>S.cumA[k]?Math.min(1,S.A[k]/S.cumA[k]):0,ring=f=>keys.map((_,i)=>pt(i,R*f).join(',')).join(' ');
  const poly=keys.map((k,i)=>pt(i,Math.max(.03,val(k))*R).join(',')).join(' ');
- const anc=['middle','start','start','middle','end','end'];
- const lab=keys.map((k,i)=>{const[x,y]=pt(i,R+10),b=S.block.includes(k),dy=i===0?-4:i===3?12:4;return `<text x="${x}" y="${(+y+dy).toFixed(1)}" text-anchor="${anc[i]}" class="rl${b?' b':''}">${ATRN[k].toUpperCase()} ${S.A[k]}</text>`}).join('');
+ const anc=keys.map((_,i)=>{const c=Math.cos(-Math.PI/2+i*2*Math.PI/keys.length);return Math.abs(c)<.2?'middle':c>0?'start':'end'});
+ const lab=keys.map((k,i)=>{const[x,y]=pt(i,R+10),b=S.block.includes(k),dy=i===0?-4:i===keys.length/2?12:4;return `<text x="${x}" y="${(+y+dy).toFixed(1)}" text-anchor="${anc[i]}" class="rl${b?' b':''}">${ATRN[k].toUpperCase()} ${S.A[k]}</text>`}).join('');
  const desc=ATR.map(([k,l])=>`${l}: ${S.A[k]} XP de ${Math.round(S.cumA[k]||0)} posibles; para el mínimo cuentan ${S.AM[k]} de ${S.min[k]}${S.block.includes(k)?', bloquea la subida':''}`).join('. ');
  return `<svg class="radar" viewBox="-22 -4 284 208" role="img" aria-label="Radar de atributos. ${esc(desc)}.">${[1,.66,.33].map(f=>`<polygon points="${ring(f)}" class="rg"/>`).join('')}<polygon points="${ring(.4)}" class="rmin"/>${keys.map((_,i)=>`<line x1="${cx}" y1="${cy}" x2="${pt(i,R)[0]}" y2="${pt(i,R)[1]}" class="rg"/>`).join('')}<polygon points="${poly}" class="rv"/>${lab}</svg>`}
 function weak(S,A){const dr=dueRows();if(dr.length)return{t:`${dr.length} revisi${dr.length>1?'ones vencidas':'ón vencida'}`,s:S.frozen?`${S.frozen} puntos en pausa hasta que lo compruebes.`:'Compruébalo para mantener tus puntos.',go:"go('m')"};
@@ -428,7 +428,7 @@ async function wipe(){if(!await ask('<h2>¿Borrar todos tus datos?</h2><p><b>No 
 /* ===================== Copia de seguridad ===================== */
 function backupDue(){if(!D.misiones.some(m=>m.hecha)&&D.registro.length<3)return false;const sn=D.cfg.backupSnooze;if(sn&&sn>today())return false;const last=D.cfg.lastBackup;return !last||last<=ymd(new Date(Date.now()-30*864e5))}
 function snoozeBackup(){const x=new Date();x.setDate(x.getDate()+7);D.cfg.backupSnooze=ymd(x);save();render()}
-async function exportar(){const name='planb-copia-'+today()+'.json',json=JSON.stringify({app:'planb',ver:6,av:APPV,fecha:new Date().toISOString(),data:D},null,2),blob=new Blob([json],{type:'application/json'});let shared=false;
+async function exportar(){const name='planb-copia-'+today()+'.json',json=JSON.stringify({app:'planb',ver:7,av:APPV,fecha:new Date().toISOString(),data:D},null,2),blob=new Blob([json],{type:'application/json'});let shared=false;
  try{const f=new File([blob],name,{type:'application/json'});if(navigator.canShare&&navigator.canShare({files:[f]})&&/iPhone|iPad|Android/.test(navigator.userAgent)){await navigator.share({files:[f],title:'Copia de Plan B'});shared=true}}catch(e){if(e&&e.name==='AbortError')return}
  if(!shared){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500)}
  D.cfg.lastBackup=today();delete D.cfg.backupSnooze;save();render();note('Copia creada: '+name)}
