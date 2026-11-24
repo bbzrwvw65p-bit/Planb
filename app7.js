@@ -33,7 +33,7 @@ function expl(i){const g=GL7[GLK[i]];if(!g)return;ask(`<h2>${esc(g[0])}</h2><p>$
 /* ===================== Copia de seguridad y migración a la 7 ===================== */
 function backupNow(motivo){try{LS.setItem(BKA,JSON.stringify({at:new Date().toISOString(),motivo,app:APPV,ver:D&&D.ver,data:D}));return true}catch(e){return false}}
 function dlCopy(key){const raw=LS.getItem(key);if(!raw)return note('No hay copia guardada.');let x;try{x=JSON.parse(raw)}catch(e){return note('La copia está dañada.')}
- shareFile({app:'planb',ver:x.de??x.ver??0,av:x.app||APPV,fecha:x.at,data:x.data},'planb-copia-'+(key===BK7?'antes-de-7':'auto')+'-'+String(x.at||today()).slice(0,10)+'.json')}
+ shareFile({app:'planb',ver:x.de??x.ver??0,av:x.app||APPV,fecha:x.at,data:x.data},'planb-copia-'+(key===BK7?'antes-de-7':typeof BK8!=='undefined'&&key===BK8?'antes-de-8':'auto')+'-'+String(x.at||today()).slice(0,10)+'.json')}
 function legacyQty(r){return num7(r.cantNum)||num7(r.cantidad)}
 function migrate7(){const was=D.ver||0;
  D.mig7={de:was,at:today(),nivel:D.nivel,pasados:(D.pasados||[]).slice(),fin:!!D.fin};
@@ -226,7 +226,7 @@ function rowSum(r){const s=secOf(r),k=r.kind,v=[];
  else if(s==='evac')v.push(r.modo||'',r.probada?'probada '+fmtD(r.probada):'',r.pesoKg?r.pesoKg+' kg':'');
  if(r.legado&&!r.kind)v.push((r.cantNum?r.cantNum+' '+(r.unidad||''):r.cantidad||''));
  return v.filter(Boolean).join(' · ')}
-function medsHtml(){const ps=D.personas||[];if(!ps.length)return '<p class="sm mut">Añade primero las personas en Perfil.</p>';
+function medsHtml(){const ps=D.personas||[];if(!ps.length)return '<p class="sm mut">Añade primero las personas en Equipo › Personas.</p>';
  return ps.map((p,i)=>`<article class="card"><div class="row sb"><h3 class="h3">${esc(pname(p,i))}</h3>${isMine(p)?`<button type="button" class="gh sm" onclick="medEdit('${p.id}')">+ Medicación</button>`:''}</div>${(p.meds||[]).filter(m=>!m._del).map((m,j)=>{const d=num7(m.dosis)?num7(m.unidades)/num7(m.dosis):0;return `<div class="rv"><div><b>${esc(m.nombre||'Medicación')}</b><span class="xs mut db">${fmtN(d)} días · ${esc(m.dosis||'?')} al día · ${esc(m.unidades||'?')} unidades${m.caduca?' · caduca '+fmtD(m.caduca):''}</span></div>${isMine(p)?`<button type="button" class="gh sm" onclick="medEdit('${p.id}',${j})">Editar</button>`:''}</div>`}).join('')||`<p class="xs mut">${p.med==='Sí'?'Toma medicación diaria: apúntala para calcular los días.':'Sin medicación apuntada.'}</p>`}<p class="xs mut">🔒 Privada: no se comparte salvo que su dueño marque «Salud» al compartir.</p></article>`).join('')}
 function medEdit(pid,j){const p=D.personas.find(q=>q.id===pid);if(!p)return;p.meds=p.meds||[];const m=j==null?{}:p.meds[j];
  $('#nav').hidden=true;document.body.classList.add('nonav');

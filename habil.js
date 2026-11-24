@@ -3,7 +3,7 @@
    Caduca a los 12 meses: vuelve a Explicado, sus puntos quedan en pausa y deja de contar como requisito de nivel.
    Las preguntas salen del texto de cada ficha y de sus mismas fuentes. La ficha de violencia doméstica nunca puntúa ni se anota. */
 'use strict';
-const APPV='8.0.0',APPV_N=80;
+const APPV='8.0.2',APPV_N=82; /* 8.0.2: las luces pasan a «Iluminación» (cambio de formato, con copia previa) */
 const SKXP=30,CURSO_XP=50,SK_PASS=.8;
 /* Requisitos de nivel: habilidades Aprendidas y vigentes (se acumulan: en el nivel 2 siguen contando las del 1) */
 const REQ={1:['extintor','gas','rcp','pls'],2:['agua','hemo']};

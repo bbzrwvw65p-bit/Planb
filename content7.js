@@ -84,7 +84,7 @@ const GL7={
  potable:['Agua potable','Agua apta para beber tal cual. La no potable solo cuenta si tienes forma de potabilizarla.'],
  potabilizar:['Potabilizar','Hacer el agua apta para beber: filtro, pastillas, lejía apta para agua de bebida o hervir (hervir gasta combustible).',SRC7.lejia],
  higieneSeco:['Higiene en seco','Lavarse y mantener la casa limpia sin gastar agua: toallitas, gel sin aclarado, champú en seco, váter de emergencia, papel y compresas.'],
- kcal:['kcal','La energía que da cada envase. Está en la etiqueta. Lo que necesita cada persona sale de su perfil (fórmula de Mifflin-St Jeor por la actividad, EFSA).',SRC7.efsaE],
+ kcal:['kcal','La energía que da cada envase. Está en la etiqueta. Lo que necesita cada persona sale de sus datos en Equipo (fórmula de Mifflin-St Jeor por la actividad, EFSA).',SRC7.efsaE],
  proteina:['Proteína','Gramos de proteína de cada envase, según la etiqueta. Referencia: 0,83 g por kg de peso y día en adultos (EFSA).',SRC7.efsaP],
  grupos:['Grupos de alimentos','Para que la reserva sea equilibrada conviene tener de varios grupos. El aviso de equilibrio es una '+PB+'.'],
  dietas:['Dietas y alergias','Las dietas y alergias de cada persona filtran qué comida cuenta para ella.'],

@@ -133,7 +133,7 @@ const Vp7=V.p;V.p=function(){let h=Vp7();const x=X();
  if(hab)h=h.replace(hab,'');if(off)h=h.replace(off,'');
  if(hab)h=h.replace(/(<section class="card radarc"[\s\S]*?<\/section>)/,'$1'+hab);
  let pre='';
- if(x.solaVul)pre+=`<section class="card rev"><div class="k">▲ Vives solo</div><p class="sm">Con movilidad reducida o un aparato médico que necesita luz, en una emergencia es más difícil pedir ayuda. Acuerda una ${term('senal','señal de vida')} con tu contacto de fuera y ten el 112 a mano.</p><button type="button" class="gh sm" onclick="go('e')">Ir a Grupo</button></section>`;
+ if(x.solaVul)pre+=`<section class="card rev"><div class="k">▲ Vives solo</div><p class="sm">Con movilidad reducida o un aparato médico que necesita luz, en una emergencia es más difícil pedir ayuda. Acuerda una ${term('senal','señal de vida')} con tu contacto de fuera y ten el 112 a mano.</p><button type="button" class="gh sm" onclick="go('e')">Ir a Equipo</button></section>`;
  const hpa=`<button type="button" class="card tl wide hpa" onclick="openHPA()"><span class="k">Ha pasado algo en casa</span><b>Luz, agua, fuga, humo, gas, tiempo, terremoto…</b><span class="xs mut">Qué hacer paso a paso y lo que tienes en casa para eso.</span></button>`;
  h=h.replace(/(<section class="card" aria-labelledby="ref7">)/,hpa+'$1');
  if(pre)h=h.replace('<h1 class="sr">Panel</h1>','<h1 class="sr">Panel</h1>'+pre);
@@ -182,9 +182,9 @@ function ptnFor(s,R,x){const lv=R.lv,G=R.goal,GW=R.goalW,n=x.n||1,h=x.h||{},it=[
   if(gasHome(x))tip.push('Nunca cocines con gas, carbón ni brasas en un sitio cerrado: el humo tiene monóxido de carbono.');
   if(hasO(h.cocina,'Eléctrica')&&!hasO(h.cocina,'Butano o propano')&&!hasO(h.cocina,'Gas natural'))tip.push('Tu cocina es eléctrica: sin luz no funciona.')}
  else if(s==='energia'){const E=R.s.energia,p=E.parts||{},need=E.need;
-  if(need)tip.push(`${term('consumoBasico','Consumo')}: ${Math.round(need)} Wh/día = móviles ${p.movWh} + luz ${p.luzWh} (${LUZ_WH} Wh × persona)${p.encWh?' + encendidos '+Math.round(p.encWh):''}${p.medWh?' + médicos '+Math.round(p.medWh):''}${p.elecCookWh?' + cocina '+Math.round(p.elecCookWh):''}.`);
+  if(need)tip.push(`${term('consumoBasico','Consumo')}: ${Math.round(need)} Wh/día = móviles ${p.movWh} + luz ${p.luzWh} (${LUZ_WH} Wh × persona)${p.encWh?' + encendidos '+Math.round(p.encWh):''}${p.medWh?' + médicos '+Math.round(p.medWh):''}${p.elecCookWh?' + cocina '+Math.round(p.elecCookWh):''}${p.ownNeed?' + con batería propia '+Math.round(p.ownNeed):''}.`);
   const tgt=need?need*G:null;
-  I({id:'res',t:lv>=4?'Energía para 1 mes':'Reserva de energía',q:tgt?(lv>=4?`${fmtN(need*30)} Wh guardados (30 días), una placa probada o un generador`:`${fmtN(tgt/(1-LOSS7))} Wh de batería (${Math.round(need)} Wh × ${G} días + 15 % al cargar)`):'Faltan las personas del hogar',ok:need?(E.d>=G||(lv>=4&&(R.placaProbada||R.generador))):null,g:lv>=4?'generador':'wh',add:{kind:'Batería portátil USB',pre:tgt?{wh:Math.ceil(tgt/(1-LOSS7))}:{}}});
+  I({id:'res',t:lv>=4?'Energía para 1 mes':'Reserva de energía',q:tgt?(lv>=4?`${fmtN(need*30)} Wh guardados (30 días), una placa probada o un generador`:`${fmtN(tgt/(1-LOSS7))} Wh de batería (${Math.round(need)} Wh × ${G} días + 15 % al cargar)`):'Faltan las personas del hogar',ok:need?(E.d>=G||E.dSol>=G||(lv>=4&&(R.placaProbada||R.generador))):null,g:lv>=4?'generador':'wh',add:{kind:'Batería portátil USB',pre:tgt?{wh:Math.ceil(tgt/(1-LOSS7))}:{}}});
   I({id:'luz',t:'Luz sin red: una por persona',q:`${n} linterna${n>1?'s':''} o frontal${n>1?'es':''}`,ok:R.luces>=n,g:'w',src:srcA('fema'),add:{kind:'Aparato',pre:{grupo:'Luz',n,conex:'Pilas AA o AAA'}}});
   I({id:'pilas',t:'Pilas de repuesto',q:'Para la radio y las linternas',ok:R.S('energia').some(r=>r.kind==='Pilas'),g:'pilasClase',src:srcA('fema'),add:{kind:'Pilas'}});
   (x.P||[]).forEach((pp,i)=>{if(pp.aparato==='Sí, con electricidad')I({id:'med'+i,t:'Aparato médico de '+pname(pp,i),q:'Apunta su potencia para sumarla al consumo',ok:R.S('energia').some(r=>r.grupo==='Aparato médico'&&num7(r.w)>0),g:'encendido',add:{kind:'Aparato',pre:{grupo:'Aparato médico',enc:'Sí'}}});
@@ -196,7 +196,7 @@ function ptnFor(s,R,x){const lv=R.lv,G=R.goal,GW=R.goalW,n=x.n||1,h=x.h||{},it=[
   tip.push('Sin medicamentos: el botiquín de Cruz Roja no los lleva. Los de cada persona van en Medicación.')}
  else if(s==='medic'){const ps=D.personas||[];ps.forEach((p,i)=>{if(p.med!=='Sí')return;const ms=(p.meds||[]).filter(m=>!m._del),d=ms.length?Math.min(...ms.map(m=>num7(m.dosis)?num7(m.unidades)/num7(m.dosis):0)):0;
    I({id:'m'+i,t:'Medicación de '+pname(p,i),q:`Para ${G} días${lv>=4?' (MCF)':''}${ms.length?' · ahora '+fmtN(d)+' días':''}`,ok:ms.length?d>=G:false,g:'medicacion',src:lv>=4?srcA('msb'):null,go:`medEdit('${p.id}')`})});
-  if(!it.length)I({id:'nada',t:'Nadie toma medicación diaria',q:'Si cambia, márcalo en su perfil',ok:true,g:'medicacion'});
+  if(!it.length)I({id:'nada',t:'Nadie toma medicación diaria',q:'Si cambia, márcalo en su ficha (Equipo › Personas)',ok:true,g:'medicacion'});
   tip.push('Plan B no da consejos de dosis: habla con tu médico o farmacéutico.')}
  else if(s==='com'){const adults=x.adultos||1,wk=R.S('com').filter(r=>/Walkie/.test(r.opcion||'')).length;
   I({id:'radio',t:'Radio AM/FM con pilas',q:'Para oír avisos oficiales sin internet',ok:R.com.includes('Radio AM/FM'),g:'Radio AM/FM',src:srcA('ue'),add:{kind:'Equipo',pre:{opcion:'Radio AM/FM'}}});
@@ -283,7 +283,7 @@ function edit7(s,i,kind,mid,pre){const r=i==null?Object.assign({sec:s,kind},pre|
  <div class="row end"><button type="button" class="gh" onclick="render()">Cancelar</button><button type="button" class="btn" onclick="sv7('${s}',${i??'null'},'${esc(kind)}')">Ya lo tengo</button></div></section>`;
  const sel=$('#e_opcion');if(sel){const up=()=>{const g=GL7[sel.value];$('#e_opc_x').textContent=g?g[1]:''};sel.onchange=up;up()}
  const ubi=()=>{const m=$('#e_mision');$('#l_ubi').textContent=m&&m.value?'Dónde está (hace falta para la misión)':'Dónde está · opcional'};const ms=$('#e_mision');if(ms&&ms.tagName==='SELECT')ms.addEventListener('change',ubi);ubi();
- const deps=[...document.querySelectorAll('.fw[data-ck]')],ref=()=>deps.forEach(el=>{const c=$('#e_'+el.dataset.ck);el.hidden=!(c&&c.value===el.dataset.cv)});
+ const deps=[...document.querySelectorAll('.fw[data-ck]')],ref=()=>deps.forEach(el=>{const c=$('#e_'+el.dataset.ck);el.hidden=!(c&&el.dataset.cv.split('|').includes(c.value))});
  [...new Set(deps.map(el=>el.dataset.ck))].forEach(k=>{const c=$('#e_'+k);if(c)c.addEventListener('change',ref)});ref();
  const gr=$('#e_grupo'),en=$('#e_enc');if(gr&&en&&i==null)gr.addEventListener('change',()=>{if(['Aparato médico','Nevera de medicinas'].includes(gr.value))en.checked=true});
  window.scrollTo(0,0)}
@@ -341,7 +341,7 @@ const Ve7=V.e;V.e=function(){const x=X(),mem=Object.values(D.unidad&&D.unidad.mi
  if(!mem.length)h=h.replace(/<button type="button" class="gh sm" onclick="parDone\('([a-z_]+)'\)" disabled>Hecha<\/button>/g,`<button type="button" class="gh sm" onclick="parAmigo('$1')">Con un amigo</button>`).replace('<p class="xs mut">Se activan cuando haya otro miembro en la unidad.</p>','<p class="xs mut">Sin nadie más en el hogar, puedes hacerlas con un amigo (opcional).</p>').replace('<p class="xs mut">Se activan cuando haya otro miembro en el hogar.</p>','<p class="xs mut">Sin nadie más en el hogar, puedes hacerlas con un amigo (opcional).</p>');
  if(mem.length>=2||x.grande)h=h.replace('>Misiones en pareja<','>Misiones en grupo<');
  let add='';
- if(x.solo)add+=`<section class="card"><h2 class="k">${term('senal','Señal de vida')}</h2><p class="sm">Vives solo: acuerda con tu contacto de fuera una hora para avisar de que estás bien.</p><label for="sv_hora" class="k">Hora acordada</label><input id="sv_hora" type="time" value="${esc(D.hogar.senalHora||'')}" onchange="D.hogar.senalHora=this.value;touch(D.meta.hogar||(D.meta.hogar={}));save()"><p class="xs mut">Contacto de fuera: ${esc(ans(D.hogar.contactoExt)&&D.hogar.contactoExt!=='Aún no hay'?D.hogar.contactoExt:'sin apuntar (Perfil › Red de apoyo)')}.</p><button type="button" class="gh sm" onclick="go('g');gs('sim')">Simulacro: avisar a tu contacto</button></section>`;
+ if(x.solo)add+=`<section class="card"><h2 class="k">${term('senal','Señal de vida')}</h2><p class="sm">Vives solo: acuerda con tu contacto de fuera una hora para avisar de que estás bien.</p><label for="sv_hora" class="k">Hora acordada</label><input id="sv_hora" type="time" value="${esc(D.hogar.senalHora||'')}" onchange="D.hogar.senalHora=this.value;touch(D.meta.hogar||(D.meta.hogar={}));save()"><p class="xs mut">Contacto de fuera: ${esc(ans(D.hogar.contactoExt)&&D.hogar.contactoExt!=='Aún no hay'?D.hogar.contactoExt:'sin apuntar (Equipo › Red de apoyo)')}.</p><button type="button" class="gh sm" onclick="go('g');gs('sim')">Simulacro: avisar a tu contacto</button></section>`;
  if(x.grande||x.helpQ)add+=`<section class="card"><h2 class="k">Al salir, quién se encarga de quién</h2>${x.helpQ?`<p class="xs">Necesitan ayuda: ${esc(x.helpQ)}.</p>`:''}<textarea id="qc" rows="3" aria-label="Quién se encarga de quién" placeholder="Ej.: Ana lleva a Leo; Luis ayuda a la abuela" onchange="D.hogar.quienCuida=this.value.trim();touch(D.meta.hogar||(D.meta.hogar={}));save()">${esc(D.hogar.quienCuida||'')}</textarea></section>`;
  const i=h.indexOf('<section class="card"><div class="k">Misiones en');return add&&i>-1?h.slice(0,i)+add+h.slice(i):h+add};
 async function parAmigo(k){const d=PAR.find(q=>q.k===k);const who=prompt(`«${d.t}» con un amigo. ¿Con quién la habéis hecho?`,'');if(!who||who.trim().length<2)return;
@@ -365,7 +365,7 @@ const applyCfg7=applyCfg;applyCfg=function(){applyCfg7();const c=D&&D.cfg||{};do
 function showLegal(first){ask(LEGAL8(),'Entendido',null).then(()=>{try{LS.setItem(LEGAL_K,REV8)}catch(e){}})}
 
 /* ===================== Nombres de pestañas ===================== */
-NAV.forEach(n=>{if(n[0]==='r')n[1]='Refugio';if(n[0]==='e')n[1]='Grupo'});
+NAV.forEach(n=>{if(n[0]==='r')n[1]='Refugio';if(n[0]==='e')n[1]='Equipo'});
 const go7=go;go=function(k){go7(k);try{if(k==='r')history.replaceState(null,'','#refugio');if(k==='e')history.replaceState(null,'','#grupo')}catch(e){}};
 
 /* ===================== Migración 7 → 8 (copia antes; no se borra nada) ===================== */
@@ -435,4 +435,4 @@ function cuenta8(s,R){const x=X(),q=R.s[s],f=fmtN;let t='';
 const revisado8=revisado;revisado=function(i){const r=D.registro[i];if(r&&r.kind==='Envases'&&r.llenado&&r.origen==='Del grifo (la llenaste tú)'){r.llenado=today();r.revision=plusM(today(),LLENADO_M);r.confirmado=today();touch(r);save();render();note('Agua cambiada hoy.');return}revisado8(i)};
 /* Perfil › Tus datos: el bloque Versión solo está en Sistema */
 const Vf8b=V.f;V.f=function(){const h=Vf8b();return sub==='datos'?h.replace(/<section class="card"><div class="k">Versión<\/div>[\s\S]*?<\/section>/,''):h.replace(/ Sin cuentas ni servidores\. Versión [0-9.]+\./,' Sin cuentas ni servidores.')};
-boot();
+/* boot() se llama al final de app801.js (8.0.1), después de todas las capas */

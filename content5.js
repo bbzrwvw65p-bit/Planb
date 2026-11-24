@@ -35,14 +35,14 @@ function condiciones(g,x){const h=x.h||{},out=[],un=v=>v===undefined||v===NS||v=
  COND.forEach(c=>{let st,n;
   if(c.isla){if(h.isla!=='Sí')return}
   if(c.b){st=c.b[g];n=c.n[g]}
-  if(c.k==='solar'){if(un(h.elec)){st='unk';n='No sabemos si tienes placas solares con batería. Respóndelo en Perfil · Agua, luz e internet.'}
+  if(c.k==='solar'){if(un(h.elec)){st='unk';n='No sabemos si tienes placas solares con batería. Respóndelo en Ajustes › Tu hogar.'}
    else if(x.solar){st=g==='cat'?'inc':'si';n=g==='cat'?'Tus placas pueden estar dañadas.':'Tienes placas con batería: hay energía si hace sol.'}
    else{st='no';n='Has respondido que no tienes placas solares con batería. Hay luz de día, pero no energía propia.'}}
   if(c.k==='agua'){const base={inc:'si',eme:'inc',cri:'inc',cat:'no'}[g];st=base;n={inc:'Normal fuera de la zona afectada.',eme:'Los bombeos y las potabilizadoras necesitan luz: puede faltar presión.',cri:'Cortes o avisos de no potable.',cat:'Se da por perdida.'}[g];
-   if(un(h.agua)){st='unk';n='No sabemos de dónde llega tu agua. Respóndelo en Perfil.'}
+   if(un(h.agua)){st='unk';n='No sabemos de dónde llega tu agua. Respóndelo en Ajustes › Tu hogar.'}
    else if(x.bombaRisk&&g!=='inc'){st=g==='cat'?'no':'inc';n='Tu agua depende de una bomba: sin luz, no hay presión.'}
    else if(x.alto&&g!=='inc'&&h.agua==='Red municipal'){n+=' En plantas altas la presión es lo primero que falla.'}}
-  if(c.k==='calor'){if(un(h.temp)&&!Array.isArray(h.fenom)&&un(h.clima)){st='unk';n='No sabemos cómo es el clima donde vives. Respóndelo en Perfil · Clima.'}
+  if(c.k==='calor'){if(un(h.temp)&&!Array.isArray(h.fenom)&&un(h.clima)){st='unk';n='No sabemos cómo es el clima donde vives. Respóndelo en Ajustes › Tu hogar › Clima.'}
    else if(x.calor){st='si';n='Es un factor: dices que en tu zona hay veranos muy calurosos u olas de calor. Sin luz no hay ventiladores ni aire acondicionado.'}
    else{st='no';n='Poco probable según tu clima, aunque AEMET puede avisar de episodios puntuales.'}}
   if(c.k==='internet'&&x.satInternet&&g!=='cat')n+=' Tu internet por satélite necesita electricidad.';
@@ -71,7 +71,7 @@ const T5=[
  {id:'apagon',t:'Apagón',start:'a1',n:{
   a1:{q:'¿Hay luz en la calle o en casa de los vecinos?',o:[['Sí, solo me falta a mí','a_casa'],['No, falta en toda la zona','a2'],['No lo sé','a2']]},
   a_casa:{fin:'Puede ser solo tu casa',s:['Mira el cuadro eléctrico: si ha saltado un interruptor, súbelo.','Si vuelve a saltar, desenchufa aparatos y súbelo otra vez; el último que enchufaste puede ser la causa.','Si no vuelve, llama al teléfono de averías de tu distribuidora (está en la factura).'],src:[S5.PC]},
-  a2:{q:'¿Alguien depende de un aparato médico eléctrico o de medicación en nevera?',hint:x=>x.elecDev||x.medFrio?'Según tu perfil: '+[x.elecDev?'aparato eléctrico de '+x.elecDevQ:'',x.medFrio?'medicación en frío de '+x.medFrioQ:''].filter(Boolean).join('; ')+'.':null,o:yesNo('a_med','a_fin','a_med')},
+  a2:{q:'¿Alguien depende de un aparato médico eléctrico o de medicación en nevera?',hint:x=>x.elecDev||x.medFrio?'Según tus datos: '+[x.elecDev?'aparato eléctrico de '+x.elecDevQ:'',x.medFrio?'medicación en frío de '+x.medFrioQ:''].filter(Boolean).join('; ')+'.':null,o:yesNo('a_med','a_fin','a_med')},
   a_med:{fin:'Aparato o medicación en riesgo',call:true,s:['Aparato médico: pásalo a batería ya. Si no tiene o se agota, llama al 112.','Medicación en frío: mantén la nevera cerrada; si el corte se alarga, pásala a una nevera portátil con acumuladores y consulta a tu farmacia.','Sigue con los pasos generales del apagón.'],next:'a_fin',src:[S5.SAN,S5.PC]},
   a_fin:{fin:'Apagón en la zona',s:[(x,r)=>'Luz: '+(r(['luz'],/linterna|frontal|luz/i)||'linterna o frontal; el móvil, mejor para comunicarte')+'.','No abras la nevera ni el congelador: la nevera aguanta unas 4 h cerrada; el congelador lleno, unas 48 h (24 h si está a medias).','Desenchufa aparatos sensibles y deja una lámpara encendida para saber cuándo vuelve la luz.','Velas, nunca sin vigilar. Hornillos, barbacoas y generadores solo al aire libre y lejos de puertas y ventanas: el monóxido de carbono mata.',x=>x.bombaRisk?'Tu agua depende de una bomba: guarda agua ya en recipientes.':'Si tu agua depende de bombeo, puede faltar presión: llena algunos recipientes.','Información: radio a pilas (Radio Nacional) y avisos ES-Alert en el móvil.','Ahorra batería del móvil y usa SMS mejor que llamadas.','Quédate en casa salvo que las autoridades digan otra cosa.'],src:[S5.PC,S5.USDA,S5.CDC]}}},
  {id:'agua',t:'Sin agua',start:'w1',n:{
@@ -128,7 +128,7 @@ const T5=[
   p1:{q:'¿Es un menor?',o:[['Sí','p_menor'],['No','p2']]},
   p_menor:{fin:'Menor desaparecido',call:true,s:['Busca un momento en los alrededores y donde suele ir, sin perder tiempo.','Llama ya al 112, al 091 (Policía Nacional) o al 062 (Guardia Civil). No hay que esperar 24 horas.','También existe el 116 000, teléfono europeo para niños desaparecidos.','Ten a mano una foto reciente y cómo iba vestido.'],src:[S5.INT]},
   p2:{q:'¿Os habéis separado durante una emergencia?',o:[['Sí','p_emerg'],['No','p_adulto']]},
-  p_emerg:{fin:'Separados en una emergencia',s:[x=>'Id al punto de encuentro acordado'+(ans(x.h.punto)&&x.h.punto!=='Aún no hay'?': '+x.h.punto:' (aún no está definido en tu perfil)')+'.',()=>{const p=planHogar();return 'Deja una nota en papel'+(p&&ans(p.nota)?' en: '+p.nota:' donde lo hayáis pactado')+'.'},()=>{const p=planHogar();return 'Hora de radio'+(p&&ans(p.horas)?': '+p.horas+(ans(p.canal)?' · '+p.canal:''):': la acordada en el plan sin red')+'.'},x=>ans(x.h.contactoExt)&&x.h.contactoExt!=='Aún no hay'?'Contacto fuera de la zona: '+x.h.contactoExt+'.':'Si tenéis un contacto fuera de la zona, avisadle: hace de centralita.','Avisa a los equipos de emergencia del lugar o al 112.'],src:[S5.PC,S5.FE]},
+  p_emerg:{fin:'Separados en una emergencia',s:[x=>'Id al punto de encuentro acordado'+(ans(x.h.punto)&&x.h.punto!=='Aún no hay'?': '+x.h.punto:' (aún no está apuntado en Equipo › Red de apoyo)')+'.',()=>{const p=planHogar();return 'Deja una nota en papel'+(p&&ans(p.nota)?' en: '+p.nota:' donde lo hayáis pactado')+'.'},()=>{const p=planHogar();return 'Hora de radio'+(p&&ans(p.horas)?': '+p.horas+(ans(p.canal)?' · '+p.canal:''):': la acordada en el plan sin red')+'.'},x=>ans(x.h.contactoExt)&&x.h.contactoExt!=='Aún no hay'?'Contacto fuera de la zona: '+x.h.contactoExt+'.':'Si tenéis un contacto fuera de la zona, avisadle: hace de centralita.','Avisa a los equipos de emergencia del lugar o al 112.'],src:[S5.PC,S5.FE]},
   p_adulto:{fin:'Adulto desaparecido',s:['No hay que esperar 24 horas para denunciar.','Revisa la casa y los últimos lugares donde estuvo; llama a amigos y hospitales.','Denuncia en Policía Nacional (091) o Guardia Civil (062). Si hay riesgo (persona mayor, enferma o con medicación), llama al 112.','Lleva una foto reciente, la ropa que llevaba y su medicación.'],src:[S5.INT]}}},
  {id:'evac',t:'Evacuación',start:'e1',n:{
   e1:{q:'¿Te lo han ordenado las autoridades?',o:yesNo('e2','e3','e3')},
@@ -143,7 +143,7 @@ const T5=[
   g_co:{fin:'Posible monóxido de carbono',call:true,s:['El monóxido no huele. Sal al aire libre ya con todos, también los animales.','Abre ventanas al salir solo si no te retrasa.','Llama al 112.','Nunca uses hornillos, barbacoas ni generadores dentro de casa o en el garaje.'],src:[S5.SAN,S5.CDC]}}},
  {id:'pagos',t:'Sin dinero ni pagos',start:'m1',n:{
   m1:{q:'¿Fallan las tarjetas y el pago con móvil en todas partes?',o:[['Sí, es general','m_gen'],['No, solo a mí','m_yo'],['No lo sé','m_gen']]},
-  m_gen:{fin:'Fallo general de pagos',s:[x=>x.h.efectivo==='Sí'?'Usa el efectivo de casa para lo básico.':x.h.efectivo==='No'?'No tienes efectivo en casa según tu perfil: prioriza lo imprescindible.':'Usa efectivo si tienes.','Prioriza agua, comida y medicación.','Muchos comercios cobrarán solo en efectivo mientras dure.','Desconfía de mensajes que piden datos bancarios: en las crisis aumentan los fraudes. Dudas: 017 (INCIBE).'],src:[S5.PC]},
+  m_gen:{fin:'Fallo general de pagos',s:[x=>x.h.efectivo==='Sí'?'Usa el efectivo de casa para lo básico.':x.h.efectivo==='No'?'No tienes efectivo en casa según tus datos: prioriza lo imprescindible.':'Usa efectivo si tienes.','Prioriza agua, comida y medicación.','Muchos comercios cobrarán solo en efectivo mientras dure.','Desconfía de mensajes que piden datos bancarios: en las crisis aumentan los fraudes. Dudas: 017 (INCIBE).'],src:[S5.PC]},
   m_yo:{fin:'Problema solo tuyo',s:['Llama a tu banco para bloquear la tarjeta si la has perdido.','Pide ayuda a alguien de confianza.','Si te falta para lo básico, acude a los servicios sociales de tu ayuntamiento o a Cruz Roja.'],src:[S5.CR]}}},
  {id:'sincom',t:'Sin comunicaciones',start:'n1',n:{
   n1:{q:'¿El móvil muestra «Solo SOS» o «Solo llamadas de emergencia»?',o:[['Sí','n_sos'],['No hay nada de red','n_nada'],['No lo sé','n_nada']]},

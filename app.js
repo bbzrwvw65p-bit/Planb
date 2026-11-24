@@ -16,7 +16,7 @@ const hasO=(v,o)=>Array.isArray(v)&&v.includes(o);
 const list=a=>a.length<=1?a.join(''):a.slice(0,-1).join(', ')+' y '+a[a.length-1];
 const pad2=n=>String(n).padStart(2,'0');
 const mmss=s=>s==null?'—':(s>=60?Math.floor(s/60)+' min '+pad2(s%60)+' s':s+' s');
-let tab=({'#panel':'p','#mision':'m','#niveles':'n','#guia':'g','#registro':'r','#equipo':'e','#perfil':'f'})[location.hash]||'p';
+let tab=({'#panel':'p','#mision':'m','#niveles':'n','#guia':'g','#registro':'r','#equipo':'e','#grupo':'e','#perfil':'f','#ajustes':'f','#refugio':'r'})[location.hash]||'p';
 let wz=null,viewKey=null,run=null,runTick=null,emg=null,deferredPrompt=null,askedFill=false;
 
 /* ===================== Contexto del perfil ===================== */
@@ -231,7 +231,7 @@ function qHtml(q,qi,obj){const v=obj[q.k],id='q'+qi,nk=q.opt?'':`<button type="b
  if(q.hint)h+=`<p class="hint">${esc(q.hint)}</p>`;if(q.link&&typeof linksHtml==='function')h+=linksHtml([q.link],false,true);
  return h+'</fieldset>'}
 function renderWz(){const sc=wz.cur==='__sum'?null:wzCur(),L=wzList(),pos=wz.hist.length,tot=Math.max(pos,L.length);
- const title=wz.mode==='onb'?'Configuración inicial':wz.mode==='fill'?'Completar perfil':'Editar perfil';let body;
+ const title=wz.mode==='onb'?'Configuración inicial':wz.mode==='fill'?'Completar datos':'Editar';let body;
  if(sc){const sub=sc.scope==='h'?'Hogar · '+esc(sc.s.t):`${esc(sc.who)} · ${esc(sc.s.t)}`;
   body=`<div class="wzh"><div class="k">${sub}</div><div class="pbar" role="progressbar" aria-label="Progreso" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${pos}"><i style="width:${Math.round(pos/tot*100)}%"></i></div></div>
   ${wz.mode==='fill'&&pos===1&&D&&D.migradoDe?'<p class="box">Plan B se ha actualizado y hay preguntas nuevas. Tu progreso, tus misiones y tu registro se conservan.</p>':''}${wz.mode==='onb'&&pos===1?bigHelp()+'<p class="lead">No damos nada por hecho. Responde lo que sepas; si no lo sabes, marca «No lo sé».</p><p class="box">¿Vienes de otro móvil? <button type="button" class="link" onclick="$(\'#imp0\').click()">Restaurar una copia</button><input type="file" id="imp0" accept="application/json,.json" hidden onchange="importar(this)"></p>':''}${sc.s.h?`<p class="lead">${esc(sc.s.h)}</p>`:''}${sc.s.q.map((q,qi)=>qVisible(q,sc.obj)?qHtml(q,qi,sc.obj):'').join('')}
@@ -250,7 +250,7 @@ function wzEnd(){const dr=wz.draft,mode=wz.mode;syncArrays(dr);
  const old=unknownsKeys();stampProfile(dr);D.hogar=dr.hogar;D.personas=dr.personas;D.mascotas=dr.mascotas;D.vehiculos=dr.vehiculos||[];
  if(D.personas.length&&D.hogar.nper!==NS)D.hogar.nper=D.personas.length;
  const now=unknownsKeys();old.forEach(k=>{if(!now.has(k.id)&&!D.aver.some(a=>a.id===k.id))D.aver.push({id:k.id,f:k.f,fecha:today()})});
- wz=null;makeRepasos();checkLevel();save();if(mode==='onb')tab='p';render();window.scrollTo(0,0);note(mode==='onb'?'Perfil guardado. Tu primera misión te espera.':'Perfil guardado. Misiones y cantidades actualizadas.')}
+ wz=null;makeRepasos();checkLevel();save();if(mode==='onb')tab='p';render();window.scrollTo(0,0);note(mode==='onb'?'Guardado. Tu primera misión te espera.':'Guardado. Misiones y cantidades actualizadas.')}
 
 /* ===================== Repasos ===================== */
 function makeRepasos(){const x=X();D.repasos=D.repasos||[];D.misiones.forEach(m=>{const d=defK(m.key);if(!d||!m.hecha||!visible(d,x))return;const o=objOf(d,x);if(!m.sig){m.sig=o;return}if(m.sig===o)return;
@@ -314,7 +314,7 @@ const V={};
 V.p=function(){const S=score(),A=autonomy(),x=A.x,ad=activeDef(),dr=dueRows(),wk=weak(S,A),lvl=S.lv,L=NIV[lvl-1];
  let h=`<h1 class="sr">Panel</h1><div class="hero"><div><div class="k">Nivel · rango</div><div class="n">${pad2(lvl)}<span class="nu"> · ${esc(L.t)}</span></div><div class="rk">${D.fin?'NIVEL MÁXIMO':'RANGO '+ROM[S.ri]+' · '+RANGOS[S.ri].toUpperCase()}</div></div>
  <div class="tr"><div class="k">XP total</div><div class="n">${S.T.toLocaleString('es-ES')}</div><div class="mut xs up">${D.fin?'4 niveles completados':S.next?`${S.next} para rango ${ROM[S.ri+1]}`:'Rango máximo · haz el examen'}</div></div></div>`;
- const un=unanswered();if(un)h+=`<button type="button" class="card inv wide tl" onclick="startWz('fill')"><span class="k">Perfil incompleto</span><b>${un} pregunta${un>1?'s':''} sin responder</b><span class="xs">Respóndelas para adaptar misiones y cantidades.</span></button>`;
+ const un=unanswered();if(un)h+=`<button type="button" class="card inv wide tl" onclick="startWz('fill')"><span class="k">Faltan respuestas</span><b>${un} pregunta${un>1?'s':''} sin responder</b><span class="xs">Respóndelas para adaptar misiones y cantidades.</span></button>`;
  h+=`<section class="card radarc" aria-labelledby="att"><h2 class="k" id="att">Atributos</h2><div class="rcol">${radar(S)}</div><div class="rtx"><p class="mut xs">Para subir: el mínimo en los seis (línea discontinua), las habilidades del nivel y el examen. Para el mínimo solo cuentan misiones comprobadas y habilidades aprobadas.</p><p class="blk">${S.block.length?'BLOQUEAN: '+S.block.map(k=>ATRN[k].toUpperCase()).join(' · '):'TODOS EN EL MÍNIMO'}</p></div></section>`;
  h+=`<section class="card" aria-labelledby="frt"><h2 class="k" id="frt">Frentes de cobertura</h2><ul class="bars">${FR.map(([k,l])=>{const mx=S.cumF[k]||0,p=mx?Math.min(100,Math.round(S.F[k]/mx*100)):0;return `<li><span>${l}</span><span class="bar" role="img" aria-label="${l}: ${p} %"><i style="width:${p}%"></i></span><b>${S.F[k]}</b></li>`}).join('')}</ul></section>`;
  h+=`<div class="two">${wk?`<button type="button" class="card inv tl" onclick="${wk.go}"><span class="k">▲ Punto débil</span><b>${esc(wk.t)}</b><span class="xs">${esc(wk.s)}</span></button>`:`<div class="card"><div class="k">Punto débil</div><b>Nada urgente</b></div>`}
@@ -335,7 +335,7 @@ function xpRows(d){const w=d.a.length>1?[.6,.4]:[1],B=XPB[d.ty],r=[];
 V.m=function(){const x=X(),reps=D.repasos.filter(r=>!r.resuelto),dr=dueRows(),uk=unknowns();let h='<h1 class="sr">Misión</h1>';
  if(!viewKey){
  if(dr.length)h+=`<section class="card inv"><h2 class="k">Por revisar · ${dr.length}</h2>${dr.map(([r,i])=>`<div class="rv"><div><b>${esc(r.recurso)}</b><span class="xs db">${expired(r)?'Caducó el '+fmtD(r.caduca)+': repón y edita':(r.revision<today()?'Tocaba revisarlo el ':'Toca revisarlo hoy · ')+fmtD(r.revision)} · ${esc(r.ubicacion||'—')}</span></div><button type="button" class="gh inv sm" onclick="${expired(r)?`edit(${i})`:`revisado(${i})`}">${expired(r)?'Editar':'Revisado hoy'}</button></div>`).join('')}<p class="xs">Mientras esté «Por revisar», sus XP no cuentan y no puedes subir de nivel.</p></section>`;
- h+=reps.map(r=>`<section class="card dash"><div class="k">Repaso · tu perfil cambió</div><h3 class="h3">${esc(r.titulo)}</h3><p class="sm">${esc(r.texto)}</p><div class="row"><button type="button" class="gh" onclick="edit(null,${r.mid})">Actualizar en el Refugio</button><button type="button" class="gh" onclick="ajustado(${r.id})">Ya está ajustado</button></div></section>`).join('');
+ h+=reps.map(r=>`<section class="card dash"><div class="k">Repaso · tus datos cambiaron</div><h3 class="h3">${esc(r.titulo)}</h3><p class="sm">${esc(r.texto)}</p><div class="row"><button type="button" class="gh" onclick="edit(null,${r.mid})">Actualizar en el Refugio</button><button type="button" class="gh" onclick="ajustado(${r.id})">Ya está ajustado</button></div></section>`).join('');
  if(uk.length)h+=`<details class="card"><summary><span class="k">Por averiguar · ${uk.length}</span><span class="xs mut db">Misiones cortas: +5 XP de Resolución cada una</span></summary><ul class="ul">${uk.map(u=>`<li><div><b>${esc(u.l)}</b><span class="xs mut db">${esc(u.who)}</span></div><button type="button" class="gh sm" onclick="startWz('edit',['${u.sid}'])">Responder</button></li>`).join('')}</ul></details>`;}
  const d=viewKey?defK(viewKey):activeDef();
  if(!d){const S=score();return h+(D.fin?`<section class="card"><div class="k">Sistema completo</div><h2 class="h2">NIVEL 4 SUPERADO</h2><p>Mantén tus revisiones y repite los simulacros para no perder forma.</p></section>`:`<section class="card inv"><div class="k">Examen superado</div><h2 class="h3">Faltan mínimos para subir</h2><p class="sm">Por debajo: ${S.block.map(k=>ATRN[k]).join(', ')}. Repite cronómetros, completa misiones o revisa lo que esté «Por revisar».</p></section>`)}
@@ -423,7 +423,7 @@ async function sv(i){const r={};RF.forEach(([k])=>r[k]=$('#f_'+k).value.trim());
  if(r.mision)D.repasos.forEach(x=>{if(!x.resuelto&&x.mid===r.mision){x.resuelto=today();const m=D.misiones.find(q=>q.id===x.mid),d=m&&defK(m.key);if(d)m.sig=objOf(d)}});
  save();render();note('Guardado.')}
 async function del(i){if(await ask(`<h2>¿Borrar «${esc(D.registro[i].recurso)}»?</h2><p>Si era la prueba de una misión, sus XP dejan de contar.</p>`,'Borrar','Cancelar')){tombstone('registro',D.registro[i]);D.registro.splice(i,1);save();render()}}
-async function wipe(){if(!await ask('<h2>¿Borrar todos tus datos?</h2><p><b>No se puede deshacer.</b> Se borran de este móvil tu perfil, las fichas, misiones, registro, Unidad, amigos y simulacros. No afecta a lo que ya hayas compartido con otros.</p><p>Exporta antes una copia si la quieres.</p><label for="wipeIn" class="k">Escribe BORRAR para confirmar</label><input id="wipeIn" autocomplete="off" autocapitalize="characters">','Borrar todo','Cancelar'))return;if(($('#wipeIn').value||'').trim().toUpperCase()!=='BORRAR'){note('No se ha borrado nada: escribe BORRAR para confirmar.');return}{sub=null;LS.removeItem(KEY);LS.removeItem('ohara');D=null;wz=null;startMode=null;render()}}
+async function wipe(){if(!await ask('<h2>¿Borrar todos tus datos?</h2><p><b>No se puede deshacer.</b> Se borran de este móvil los datos del hogar y de las personas, las fichas, misiones, Refugio, Equipo, amigos y simulacros. No afecta a lo que ya hayas compartido con otros.</p><p>Exporta antes una copia si la quieres.</p><label for="wipeIn" class="k">Escribe BORRAR para confirmar</label><input id="wipeIn" autocomplete="off" autocapitalize="characters">','Borrar todo','Cancelar'))return;if(($('#wipeIn').value||'').trim().toUpperCase()!=='BORRAR'){note('No se ha borrado nada: escribe BORRAR para confirmar.');return}{sub=null;LS.removeItem(KEY);LS.removeItem('ohara');D=null;wz=null;startMode=null;render()}}
 
 /* ===================== Copia de seguridad ===================== */
 function backupDue(){if(!D.misiones.some(m=>m.hecha)&&D.registro.length<3)return false;const sn=D.cfg.backupSnooze;if(sn&&sn>today())return false;const last=D.cfg.lastBackup;return !last||last<=ymd(new Date(Date.now()-30*864e5))}
