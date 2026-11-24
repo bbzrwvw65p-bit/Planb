@@ -332,4 +332,4 @@ function updHtml(){return `<section class="card"><div class="k">Versión</div><p
  <p class="xs mut">Copias en este móvil:${LS.getItem(BK7)?` <button type="button" class="link" onclick="dlCopy('${BK7}')">antes de la 7.0.0</button>`:''}${LS.getItem(BKA)?` <button type="button" class="link" onclick="dlCopy('${BKA}')">antes de la última actualización</button>`:''}${!LS.getItem(BK7)&&!LS.getItem(BKA)?' ninguna todavía.':''}</p></section>`}
 const privacyView6=privacyView;privacyView=function(){return privacyView6().replace(/<section class="card"><div class="k">Versión<\/div>[\s\S]*?<\/section>/,updHtml())};
 const Vf7=V.f;V.f=function(){const h=Vf7();return h.includes('Versión')?h:h+updHtml()};
-boot();
+/* boot() se llama al final de app8.js */

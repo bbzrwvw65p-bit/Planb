@@ -187,7 +187,7 @@ const FICHAS=[
    'Correo: 016-online@igualdad.gob.es. También hay chat en la web de la Delegación del Gobierno contra la Violencia de Género.',
    'Para personas sordas o con dificultades del habla: además de WhatsApp, correo y chat, el teléfono de texto 900 116 016.']},
    {h:'Pedir ayuda con discreción',s:[
-   'La llamada al 016 no aparece en la factura, pero puede quedar en el registro de llamadas del móvil. Bórrala después. Pasos orientativos, no oficiales, que cambian según el modelo: en iPhone, app Teléfono › Recientes, desliza la llamada a la izquierda y toca Eliminar; en Android, app Teléfono › Recientes, mantén pulsada la llamada y elige Eliminar. Algunos modelos ya no guardan las llamadas al 016.',
+   'La llamada al 016 no aparece en la factura, pero puede quedar en el registro de llamadas del móvil. Bórrala después. Pasos orientativos, no oficiales, que cambian según el móvil: en la app de teléfono, abre las llamadas recientes y borra esa llamada (deslizándola o manteniéndola pulsada). Algunos móviles ya no guardan las llamadas al 016.',
    'Por escrito no se oye: WhatsApp 600 000 016 o correo. Si alguien revisa tu móvil, borra después la conversación.',
    'Señal de ayuda con la mano (Signal for Help, creada por la Canadian Women\u2019s Foundation): palma abierta hacia la otra persona, dobla el pulgar sobre la palma y cierra los demás dedos encima. Sirve en persona o en videollamada. No es un código oficial en España y no todo el mundo la conoce.',
    'Plan B no anota que has abierto esta ficha ni este árbol, y no guarda qué pantallas consultas. Usa «Salir rápido» para volver al panel.']},

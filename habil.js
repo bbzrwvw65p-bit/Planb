@@ -3,7 +3,7 @@
    Caduca a los 12 meses: vuelve a Explicado, sus puntos quedan en pausa y deja de contar como requisito de nivel.
    Las preguntas salen del texto de cada ficha y de sus mismas fuentes. La ficha de violencia doméstica nunca puntúa ni se anota. */
 'use strict';
-const APPV='7.0.0',APPV_N=70;
+const APPV='8.0.0',APPV_N=80;
 const SKXP=30,CURSO_XP=50,SK_PASS=.8;
 /* Requisitos de nivel: habilidades Aprendidas y vigentes (se acumulan: en el nivel 2 siguen contando las del 1) */
 const REQ={1:['extintor','gas','rcp','pls'],2:['agua','hemo']};
@@ -95,20 +95,20 @@ const courseMedals=()=>skList().filter(f=>{const s=skillOf(f.k);return s&&s.curs
 /* Avisos: caducadas y las que caducan en menos de un mes */
 function skWarn(){if(!D||!D.skills)return[];const out=[],lim=plusM(today(),1);
  skList().forEach(f=>{const s=skillOf(f.k);if(!s)return;
-  if(s.estado==='Explicado'&&s.caducada)out.push({k:f.k,t:f.t+': caducada',s:`Caducó el ${fmtD(s.caducada)}. Sus puntos están en pausa: repite la práctica y el test.`});
-  else if(s.estado==='Aprendido'&&s.caduca<=lim)out.push({k:f.k,t:f.t+': caduca pronto',s:`Caduca el ${fmtD(s.caduca)}. Repite el test antes para no perder sus puntos.`})});return out}
+  if(s.estado==='Explicado'&&s.caducada)out.push({k:f.k,t:f.t+': por revisar',s:`Caducó el ${fmtD(s.caducada)}. Queda «Por revisar»: repite la práctica y el test.`});
+  else if(s.estado==='Aprendido'&&s.caduca<=lim)out.push({k:f.k,t:f.t+': caduca pronto',s:`Caduca el ${fmtD(s.caduca)}. Repite el test antes para no perder sus XP.`})});return out}
 
 /* ---------- Interfaz ---------- */
 function reqHtml(lv){const ks=reqFor(lv);if(!ks.length)return '';
- return `<div class="mins"><div class="k">Habilidades para subir</div>${ks.map(k=>{const ok=skVigente(k);return `<div class="${ok?'':'b'}"><span>${ok?'✓ ':'▲ '}${esc(fichaDef(k).t)}</span><button type="button" class="gh sm" onclick="go('g');gs('como');gfic='${k}';render();window.scrollTo(0,0)">${ok?'Ver':'Aprender'}</button></div>`}).join('')}<p class="xs mut">Aprendida = práctica marcada y test aprobado (4 de 5). Caduca a los 12 meses.</p></div>`}
+ return `<div class="mins"><div class="k">Habilidades para subir</div>${ks.map(k=>{const ok=skVigente(k);return `<div class="${ok?'':'b'}"><span>${ok?'✓ ':'▲ '}${esc(fichaDef(k).t)}</span><button type="button" class="gh sm" onclick="go('g');gs('como');gfic='${k}';render();window.scrollTo(0,0)">${ok?'Ver':'Aprender'}</button></div>`}).join('')}<p class="xs mut">Aprobada = práctica marcada y test aprobado (4 de 5). Caduca a los 12 meses.</p></div>`}
 function skCard(k){if(!skOk(k)||!D||!D.hogar)return '';const s=skillOf(k)||{estado:'Explicado'},ok=skVigente(k),req=Object.entries(REQ).find(([,a])=>a.includes(k));
  const t=s.test,pass=t&&t.aciertos/t.total>=SK_PASS;
- return `<section class="card skc" id="skc"><div class="row sb"><h3 class="k">Tu habilidad</h3><span class="led">${ok?'Aprendido':'Explicado'}</span></div>
- <p class="sm">${ok?`Aprendida el ${fmtD(s.aprendido)}. Caduca el ${fmtD(s.caduca)}: entonces repite práctica y test.`:s.caducada?`Caducó el ${fmtD(s.caducada)}: sus puntos están en pausa hasta que repitas práctica y test.`:'Leída: aún no da puntos. Para «Aprendido», marca la práctica y aprueba el test (4 de 5).'}</p>
+ return `<section class="card skc" id="skc"><div class="row sb"><h3 class="k">Tu habilidad</h3><span class="led">${ok?'Aprobada':s.caducada?'Por revisar':'Leída'}</span></div>
+ <p class="sm">${ok?`Aprobada el ${fmtD(s.aprendido)}. Caduca el ${fmtD(s.caduca)}: entonces repite práctica y test.`:s.caducada?`Caducó el ${fmtD(s.caducada)}: queda «Por revisar» hasta que repitas práctica y test.`:'Leída: aún no da XP. Para que quede «Aprobada», marca la práctica y aprueba el test (4 de 5).'}</p>
  ${req?`<p class="xs mut">Requisito para superar el nivel ${req[0]}.</p>`:''}
  <ol class="steps"><li><b>Práctica.</b> ${esc(PRACT[k]||'Repasa los pasos en voz alta.')} ${s.practica?`<span class="xs db">✓ Marcada el ${fmtD(s.practica)}.</span>`:''}</li><li><b>Test.</b> 5 preguntas sacadas de esta ficha. ${t?`<span class="xs db">Último: ${t.aciertos} de ${t.total}${pass?' · aprobado':''} (${fmtD(t.fecha)}).</span>`:''}</li></ol>
  <div class="row">${s.practica?'':`<button type="button" class="gh" onclick="skPractica('${k}')">He practicado</button>`}<button type="button" class="${s.practica?'btn':'gh'}" onclick="skTest('${k}')">${t?'Repetir el test':'Hacer el test'}</button></div>
- <p class="xs mut">Aprendida da +${SKXP} XP de Habilidades. Un curso oficial da una medalla y +${CURSO_XP} XP.</p>
+ <p class="xs mut">Aprobada da +${SKXP} XP de Habilidades. Un curso oficial da una medalla y +${CURSO_XP} XP.</p>
  ${s.curso?`<p class="sm">✓ Curso oficial: ${esc(s.curso.entidad)}${s.curso.fecha?' · '+fmtD(s.curso.fecha):''}. <button type="button" class="link" onclick="skCursoDel('${k}')">Quitar</button></p>`:`<button type="button" class="gh sm" onclick="skCurso('${k}')">He hecho un curso oficial</button>`}</section>`}
 async function skPractica(k){if(!await ask(`<h2>¿Has practicado?</h2><p>${esc(PRACT[k]||'')}</p><p>Márcalo solo si lo has hecho tú.</p>`,'Sí, lo he hecho','Todavía no'))return;const s=skAll()[k]||(skAll()[k]={estado:'Explicado',abierto:today()});s.practica=today();skCheck(k);save();render();note('Práctica anotada.')}
 let skT=null;
@@ -118,7 +118,7 @@ function renderSkTest(){const f=fichaDef(skT.k);let h=`<div class="eh"><h1 class
  skT.qs.forEach((q,i)=>{h+=`<fieldset class="q"><legend class="k">${i+1}. ${esc(q.q)}</legend><div class="opts col">${q.o.map((o,j)=>{const on=skT.sel[i]===j,cls=skT.done?(o.ok?' right':on?' wrong':''):'';return `<button type="button" class="opt${on?' on':''}${cls}" aria-pressed="${on}" ${skT.done?'disabled':''} onclick="skT.sel[${i}]=${j};renderSkTest()">${skT.done&&o.ok?'✓ ':''}${esc(o.t)}</button>`}).join('')}</div></fieldset>`});
  if(!skT.done)h+=`<button type="button" class="btn wide" onclick="skGrade()">Corregir</button>`;
  else{const n=skT.qs.filter((q,i)=>q.o[skT.sel[i]]&&q.o[skT.sel[i]].ok).length,ok=n/skT.qs.length>=SK_PASS,s=skillOf(skT.k);
-  h+=`<div class="card ${ok?'inv':''}"><div class="k">Resultado</div><p class="sm"><b>${n} de ${skT.qs.length}.</b> ${ok?(s&&s.practica?'Aprobado: habilidad Aprendida.':'Aprobado. Te falta marcar la práctica para que sea Aprendida.'):'No aprobado: repasa la ficha y repite cuando quieras.'}</p></div><div class="row"><button type="button" class="gh" onclick="skTest('${skT.k}')">Repetir</button><button type="button" class="btn" onclick="closeOv();skT=null;render()">Cerrar</button></div>`}
+  h+=`<div class="card ${ok?'inv':''}"><div class="k">Resultado</div><p class="sm"><b>${n} de ${skT.qs.length}.</b> ${ok?(s&&s.practica?'Test aprobado: habilidad aprobada.':'Test aprobado. Te falta marcar la práctica para que quede aprobada.'):'No aprobado: repasa la ficha y repite cuando quieras.'}</p></div><div class="row"><button type="button" class="gh" onclick="skTest('${skT.k}')">Repetir</button><button type="button" class="btn" onclick="closeOv();skT=null;render()">Cerrar</button></div>`}
  openOv(h)}
 function skGrade(){if(Object.keys(skT.sel).length<skT.qs.length)return note('Responde las 5 preguntas.');skT.done=true;
  const n=skT.qs.filter((q,i)=>q.o[skT.sel[i]].ok).length,k=skT.k,s=skAll()[k]||(skAll()[k]={estado:'Explicado',abierto:today()});
@@ -128,7 +128,7 @@ function skCheck(k){const s=skAll()[k];if(!s)return;const t=s.test;
 async function skCurso(k){if(!await ask(`<h2>Curso oficial</h2><p>Solo si lo has hecho tú, con una entidad acreditada (por ejemplo Cruz Roja, un servicio de emergencias o tu ayuntamiento). Da una medalla y +${CURSO_XP} XP. En Amigos solo se ve el nombre de la medalla.</p><label for="cuE" class="k">Entidad</label><input id="cuE" autocomplete="off" maxlength="60"><label for="cuF" class="k">Fecha</label><input id="cuF" type="date">`,'Guardar','Cancelar'))return;
  const e=($('#cuE').value||'').trim(),fe=$('#cuF').value||'';if(!e){note('Escribe la entidad del curso.');return}if(fe&&fe>today()){note('La fecha no puede ser futura.');return}
  const s=skAll()[k]||(skAll()[k]={estado:'Explicado',abierto:today()});s.curso={entidad:e.slice(0,60),fecha:fe};save();render();note('Curso anotado: medalla y +'+CURSO_XP+' XP.')}
-async function skCursoDel(k){if(!await ask('<h2>¿Quitar el curso?</h2><p>Se quitan su medalla y sus puntos.</p>','Quitar','Cancelar'))return;delete skAll()[k].curso;save();render()}
+async function skCursoDel(k){if(!await ask('<h2>¿Quitar el curso?</h2><p>Se quitan su medalla y sus XP.</p>','Quitar','Cancelar'))return;delete skAll()[k].curso;save();render()}
 /* Resumen para el panel (nunca incluye la ficha de violencia doméstica: no es una habilidad) */
 function skPanel(){if(!D||!D.hogar)return '';const L=skList(),apr=L.filter(f=>skVigente(f.k)),req=reqMissing(D.fin?4:D.nivel);
- return `<button type="button" class="card tl wide" onclick="go('g');gs('como')"><span class="k">Habilidades · Cómo se hace</span><b>${apr.length} de ${L.length} aprendidas</b><span class="xs mut">${req.length?'Para subir de nivel te falta: '+esc(req.map(k=>fichaDef(k).t).join(', '))+'.':'Requisitos del nivel cumplidos.'}</span></button>`}
+ return `<button type="button" class="card tl wide" onclick="go('g');gs('como')"><span class="k">Habilidades · Cómo se hace</span><b>${apr.length} de ${L.length} aprobadas</b><span class="xs mut">${req.length?'Para subir de nivel te falta: '+esc(req.map(k=>fichaDef(k).t).join(', '))+'.':'Requisitos del nivel cumplidos.'}</span></button>`}

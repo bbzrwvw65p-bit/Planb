@@ -114,5 +114,5 @@ function camStop(){if(!cam)return;clearTimeout(cam.timer);try{cam.stream.getTrac
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&cam){camStop();if(typeof scanUI!=='undefined'&&scanUI)scanUI.paused=true}});
 /* ---------- Archivo: hoja de Compartir con archivo o descarga + importar ---------- */
 async function shareFile(obj,name){const blob=new Blob([JSON.stringify(obj,null,2)],{type:'application/json'});
- try{const f=new File([blob],name,{type:'application/json'});if(navigator.canShare&&navigator.canShare({files:[f]})&&/iPhone|iPad|Android/.test(navigator.userAgent)){await navigator.share({files:[f],title:name});return 'shared'}}catch(e){if(e&&e.name==='AbortError')return 'abort'}
+ try{const f=new File([blob],name,{type:'application/json'});if(navigator.canShare&&navigator.canShare({files:[f]})&&/iPhone|iPad|Android/.test(navigator.userAgent)){await navigator.share({files:[f]});return 'shared'}}catch(e){if(e&&e.name==='AbortError')return 'abort'}
  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1500);return 'download'}

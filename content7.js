@@ -11,7 +11,7 @@ const SRC7={
  efsaE:['EFSA · Valores de referencia de energía (2013)','https://www.efsa.europa.eu/en/efsajournal/pub/3005'],
  efsaP:['EFSA · Valores de referencia de proteína (2012)','https://www.efsa.europa.eu/en/efsajournal/pub/2557'],
  lejia:['Salud Navarra · Lejía para desinfectar agua','https://portalsalud.navarra.es/documents/11746728/60815232/09DocUSODELEJIAdesinfeccinaguaconsumo.pdf/a433d57f-45cd-5c2e-bf82-ecda01731a56'],
- mesh:['Meshtastic · red en malla abierta','https://meshtastic.org/']};
+ mesh:['Red en malla abierta · web del proyecto','https://meshtastic.org/']};
 const PB='recomendación de Plan B';
 /* Escalera de niveles (sustituye a 72 h / 2 semanas / 1 mes / 3 meses) */
 const NIV7=[
@@ -76,7 +76,7 @@ const GL7={
  cadPronto:['Caduca pronto','Falta un mes o menos para que caduque.'],
  xp:['XP','Puntos de experiencia de «Tú». Solo cuenta lo demostrado: lo declarado da 0.'],
  rangos:['Rangos','Progreso dentro de cada nivel: Iniciado, Aspirante, Preparado y Consolidado, según tus XP de «Tú».'],
- hab:['Habilidades','Fichas «Cómo se hace» que has practicado y aprobado con su test (Aprendido). Caducan y hay que repasarlas.'],
+ hab:['Habilidades','Fichas «Cómo se hace» que has practicado y aprobado con su test (Aprobada). Caducan y hay que repasarlas.'],
  rsp:['Respuesta','Simulacros cronometrados: tu mejor tiempo cuenta, con un mínimo creíble.'],
  res:['Resolución','Árboles de decisión recorridos, casos acertados y preguntas «No lo sé» averiguadas (una vez por pregunta).'],
  red:['Red','Personas y su papel, punto de encuentro, contacto de fuera de tu zona y quién ayuda a quién.'],
@@ -112,7 +112,7 @@ const GL7={
  'Emisora CB 27 MHz':['Emisora CB 27 MHz','Más alcance, sobre todo desde el coche o con antena fija, sin licencia.'],
  'Estación de radioaficionado':['Estación de radioaficionado','Largo alcance y redes de emergencia, con licencia.'],
  'Mensajero por satélite':['Mensajero por satélite','Mensajes cortos o SOS sin cobertura.'],
- 'Nodo de malla (radio de largo alcance)':['Nodo de malla','Aparato pequeño que se empareja con el móvil y manda mensajes de texto sin cobertura ni internet; cada nodo reenvía los mensajes de los demás; sin licencia; conocido como Meshtastic.',SRC7.mesh],
+ 'Nodo de malla (radio de largo alcance)':['Nodo de malla','Aparato pequeño que se empareja con el móvil y manda mensajes de texto sin cobertura ni internet; cada nodo reenvía los mensajes de los demás; sin licencia.',SRC7.mesh],
  'Internet por satélite':['Internet por satélite','Conexión a internet por antena cuando no hay red. Necesita electricidad.'],
  'Batería para móviles':['Batería para móviles','Carga los móviles sin red. Se apunta también en Energía.'],
  papel:['Copia en papel','Fotocopia guardada en sitio seco, por si no hay electricidad.'],
@@ -120,7 +120,7 @@ const GL7={
  efectivo:['Efectivo','Para comida y agua, farmacia, combustible o transporte, salir de casa y pagos urgentes. Mejor billetes pequeños y monedas.'],
  gastoDia:['Gasto básico diario','Lo que gasta tu hogar al día por persona en lo básico. Lo pones tú. Efectivo = personas × gasto × días del nivel ('+PB+').'],
  rutaProbada:['Ruta probada','La habéis recorrido de verdad, a pie o en vehículo.'],
- mochila:['Mochila de evacuación','Una por persona, lista para salir. Lo que lleva sale del registro sin duplicar.'],
+ mochila:['Mochila de evacuación','Una por persona, lista para salir. Lo que lleva sale del Refugio sin duplicar.'],
  nivel5:['Autosuficiente','Nivel opcional: el hogar repone lo que gasta (agua, comida, energía, cocina, higiene). Se demuestra con una misión larga.']};
 /* Kit por nivel. chk(R,x) → true, false o null (no aplica). */
 const KIT7=[
